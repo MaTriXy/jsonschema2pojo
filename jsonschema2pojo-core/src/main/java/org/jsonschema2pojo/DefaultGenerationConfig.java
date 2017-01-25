@@ -137,6 +137,11 @@ public class DefaultGenerationConfig implements GenerationConfig {
         return false;
     }
 
+    @Override
+    public boolean isIncludeJsr305Annotations() {
+        return false;
+    }
+
     /**
      * @return {@link SourceType#JSONSCHEMA}
      */
@@ -201,6 +206,14 @@ public class DefaultGenerationConfig implements GenerationConfig {
         return false;
     }
 
+    /**
+     * @return <code>false</code>
+     */
+    @Override
+    public boolean isSerializable() {
+        return false;
+    }
+
     @Override
     public FileFilter getFileFilter() {
         return new AllFileFilter();
@@ -222,6 +235,27 @@ public class DefaultGenerationConfig implements GenerationConfig {
     @Override
     public String getClassNameSuffix() {
         return "";
+    }
+
+    @Override
+    public String[] getFileExtensions() {
+        return new String[] {};
+    }
+
+    /**
+     * @return <code>false</code>
+     */
+    @Override
+    public boolean isUseBigIntegers() {
+        return false;
+    }
+
+    /**
+     * @return <code>false</code>
+     */
+    @Override
+    public boolean isUseBigDecimals() {
+        return false;
     }
 
     /**
@@ -265,11 +299,11 @@ public class DefaultGenerationConfig implements GenerationConfig {
     }
 
     /**
-     * @return <code>true</code>
+     * @return <code>false</code>
      */
     @Override
     public boolean isIncludeDynamicAccessors() {
-        return true;
+        return false;
     }
 
     @Override
@@ -286,4 +320,9 @@ public class DefaultGenerationConfig implements GenerationConfig {
     public String getTimeType() {
         return null;
     }
+
+   @Override
+   public boolean isFormatDateTimes() {
+      return false;
+   }
 }

@@ -16,8 +16,8 @@
 
 package org.jsonschema2pojo;
 
-import static org.jsonschema2pojo.AnnotationStyle.*;
 import static org.hamcrest.Matchers.*;
+import static org.jsonschema2pojo.AnnotationStyle.*;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
@@ -28,7 +28,7 @@ import org.junit.Test;
 
 public class AnnotatorFactoryTest {
 
-    private AnnotatorFactory factory = new AnnotatorFactory();
+    private AnnotatorFactory factory = new AnnotatorFactory(new DefaultGenerationConfig());
 
     @Test
     public void canCreateCorrectAnnotatorFromAnnotationStyle() {
@@ -37,6 +37,7 @@ public class AnnotatorFactoryTest {
         assertThat(factory.getAnnotator(JACKSON), is(instanceOf(Jackson2Annotator.class)));
         assertThat(factory.getAnnotator(JACKSON2), is(instanceOf(Jackson2Annotator.class)));
         assertThat(factory.getAnnotator(GSON), is(instanceOf(GsonAnnotator.class)));
+        assertThat(factory.getAnnotator(MOSHI1), is(instanceOf(Moshi1Annotator.class)));
         assertThat(factory.getAnnotator(NONE), is(instanceOf(NoopAnnotator.class)));
 
     }
@@ -47,15 +48,15 @@ public class AnnotatorFactoryTest {
         assertThat(factory.getAnnotator(Jackson1Annotator.class), is(instanceOf(Jackson1Annotator.class)));
 
     }
-    
+
     @Test
     public void canCreateCompositeAnnotator() {
-        
+
         Annotator annotator1 = mock(Annotator.class);
         Annotator annotator2 = mock(Annotator.class);
-        
+
         CompositeAnnotator composite = factory.getAnnotator(annotator1, annotator2);
-        
+
         assertThat(composite.annotators.length, equalTo(2));
         assertThat(composite.annotators[0], is(equalTo(annotator1)));
         assertThat(composite.annotators[1], is(equalTo(annotator2)));

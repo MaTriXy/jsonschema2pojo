@@ -72,8 +72,14 @@ public class Arguments implements GenerationConfig {
     @Parameter(names = { "-l", "--long-integers" }, description = "Use long (or Long) instead of int (or Integer) when the JSON Schema type 'integer' is encountered")
     private boolean useLongIntegers = false;
 
+    @Parameter(names = { "-bi", "--big-integers" }, description = "Use BigInteger instead of int (or Integer) when the JSON Schema type 'integer' is encountered. Note that this overrides -l/--long-integers")
+    private boolean useBigIntegers = false;
+
     @Parameter(names = { "-f", "--float-numbers" }, description = "Use float (or Float) instead of double (or Double) when the JSON Schema type 'number' is encountered")
     private boolean useFloatNumbers = false;
+
+    @Parameter(names = { "-i", "--big-decimals" }, description = "Use BigDecimal instead of double (or Double) when the JSON Schema type 'number' is encountered. Note that this overrides -f/--float-numbers")
+    private boolean useBigDecimals = false;
 
     @Parameter(names = { "-E", "--omit-hashcode-and-equals" }, description = "Omit hashCode and equals methods in the generated Java types")
     private boolean omitHashcodeAndEquals = false;
@@ -92,6 +98,9 @@ public class Arguments implements GenerationConfig {
 
     @Parameter(names = { "-303", "--jsr303-annotations" }, description = "Add JSR-303/349 annotations to generated Java types.")
     private boolean includeJsr303Annotations = false;
+
+    @Parameter(names = { "-305", "--jsr305-annotations" }, description = "Add JSR-305 annotations to generated Java types.")
+    private boolean includeJsr305Annotations = false;
 
     @Parameter(names = { "-T", "--source-type" })
     private SourceType sourceType = SourceType.JSONSCHEMA;
@@ -126,6 +135,9 @@ public class Arguments implements GenerationConfig {
     @Parameter(names = { "-pl", "--parcelable" }, description = "**EXPERIMENTAL** Whether to make the generated types 'parcelable' (for Android development).")
     private boolean parcelable = false;
 
+    @Parameter(names = { "-sl", "--serializable" }, description = "Whether to make the generated types 'serializable'.")
+    private boolean serializable = false;
+
     @Parameter(names = { "-N", "--null-collections" }, description = "Initialize Set and List fields to null instead of an empty collection.")
     private boolean nullCollections = false;
 
@@ -135,18 +147,24 @@ public class Arguments implements GenerationConfig {
     @Parameter(names = { "-x", "--class-suffix" }, description = "Suffix for generated class.")
     private String classNameSuffix = "";
 
-    @Parameter(names = { "-D", "--disable-additional-properties" }, description = "Disable additional properties support on generated types, regardless of the input schema(s)")
-    private boolean disableAdditionalProperties = false;
+    @Parameter(names = { "-fe", "--file-extensions" }, description = "The extensions that should be considered as standard filename extensions when creating java class names.")
+    private String fileExtensions = "";
+
+    @Parameter(names = { "-D", "--enable-additional-properties" }, description = "Enable additional properties support on generated types, regardless of the input schema(s)")
+    private boolean isIncludeAdditionalProperties = false;
 
     @Parameter(names = { "-da", "--disable-accessors" }, description = "Whether to omit getter/setter methods and create public fields instead.")
     private boolean disableAccessors = false;
-    
+
     @Parameter(names = { "-tv", "--target-version" }, description = "The target version for generated source files.")
     private String targetVersion = "1.6";
-    
-    @Parameter(names = { "-dda", "--disable-dynamic-accessors" }, description = "Disable dynamic getter, setter, and builder support on generated types.")
-    private boolean disableDynamicAccessors = false;
 
+    @Parameter(names = { "-ida", "--include-dynamic-accessors" }, description = "Include dynamic getter, setter, and builder support on generated types.")
+    private boolean includeDynamicAccessors = false;
+    
+    @Parameter(names = { "-fdt", "--format-date-times" }, description = "Whether the fields of type `date-time` have the `@JsonFormat` annotation with pattern set to the default value of `yyyy-MM-dd'T'HH:mm:ss.SSS` and timezone set to default value of `UTC`")
+    private boolean formatDateTimes = false;
+    
     private static final int EXIT_OKAY = 0;
     private static final int EXIT_ERROR = 1;
 
@@ -253,6 +271,11 @@ public class Arguments implements GenerationConfig {
     }
 
     @Override
+    public boolean isIncludeJsr305Annotations() {
+        return includeJsr305Annotations;
+    }
+
+    @Override
     public SourceType getSourceType() {
         return sourceType;
     }
@@ -292,6 +315,11 @@ public class Arguments implements GenerationConfig {
         return parcelable;
     }
 
+    @Override
+    public boolean isSerializable() {
+        return serializable;
+    }
+
     protected void exit(int status) {
         System.exit(status);
     }
@@ -317,6 +345,11 @@ public class Arguments implements GenerationConfig {
     }
 
     @Override
+    public String[] getFileExtensions() {
+        return defaultString(fileExtensions).split(" ");
+    }
+
+    @Override
     public boolean isIncludeConstructors() {
         return generateConstructors;
     }
@@ -328,7 +361,7 @@ public class Arguments implements GenerationConfig {
 
     @Override
     public boolean isIncludeAdditionalProperties() {
-        return disableAdditionalProperties;
+        return isIncludeAdditionalProperties;
     }
 
     @Override
@@ -343,7 +376,7 @@ public class Arguments implements GenerationConfig {
 
     @Override
     public boolean isIncludeDynamicAccessors() {
-        return !disableDynamicAccessors;
+        return includeDynamicAccessors;
     }
 
     @Override
@@ -359,6 +392,21 @@ public class Arguments implements GenerationConfig {
     @Override
     public String getTimeType() {
         return timeType;
+    }
+
+    @Override
+    public boolean isUseBigIntegers() {
+        return useBigIntegers;
+    }
+
+    @Override
+    public boolean isUseBigDecimals() {
+        return useBigDecimals;
+    }
+
+    @Override
+    public boolean isFormatDateTimes() {
+        return formatDateTimes;
     }
 
 }

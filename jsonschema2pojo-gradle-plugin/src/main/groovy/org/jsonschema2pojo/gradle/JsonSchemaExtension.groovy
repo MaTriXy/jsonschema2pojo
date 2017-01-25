@@ -36,6 +36,7 @@ public class JsonSchemaExtension implements GenerationConfig {
   AnnotationStyle annotationStyle
   String classNamePrefix
   String classNameSuffix
+  String[] fileExtensions
   Class<? extends Annotator> customAnnotator
   Class<? extends RuleFactory> customRuleFactory
   boolean generateBuilders
@@ -46,16 +47,19 @@ public class JsonSchemaExtension implements GenerationConfig {
   boolean constructorsRequiredPropertiesOnly
   boolean includeHashcodeAndEquals
   boolean includeJsr303Annotations
+  boolean includeJsr305Annotations
   boolean includeToString
   boolean initializeCollections
   String outputEncoding
   boolean parcelable
+  boolean serializable
   char[] propertyWordDelimiters
   boolean removeOldOutput
   SourceType sourceType
   String targetVersion
   boolean useCommonsLang3
   boolean useDoubleNumbers
+  boolean useBigDecimals
   boolean useJodaDates
   boolean useJodaLocalDates
   boolean useJodaLocalTimes
@@ -63,8 +67,10 @@ public class JsonSchemaExtension implements GenerationConfig {
   String dateType
   String timeType
   boolean useLongIntegers
+  boolean useBigIntegers
   boolean usePrimitives
   FileFilter fileFilter
+  boolean formatDateTimes
 
   public JsonSchemaExtension() {
     // See DefaultGenerationConfig
@@ -72,9 +78,11 @@ public class JsonSchemaExtension implements GenerationConfig {
     usePrimitives = false
     sourceFiles = []
     targetPackage = ''
-    propertyWordDelimiters = [] as char[]
+    propertyWordDelimiters = ['-', ' ', '_'] as char[]
     useLongIntegers = false
+    useBigIntegers = false
     useDoubleNumbers = true
+    useBigDecimals = false
     includeHashcodeAndEquals = true
     includeConstructors = false
     constructorsRequiredPropertiesOnly = false
@@ -83,6 +91,7 @@ public class JsonSchemaExtension implements GenerationConfig {
     customAnnotator = NoopAnnotator.class
     customRuleFactory = RuleFactory.class
     includeJsr303Annotations = false
+    includeJsr305Annotations = false
     sourceType = SourceType.JSONSCHEMA
     outputEncoding = 'UTF-8'
     useJodaDates = false
@@ -93,14 +102,17 @@ public class JsonSchemaExtension implements GenerationConfig {
     timeType = null
     useCommonsLang3 = false
     parcelable = false
+    serializable = false
     fileFilter = new AllFileFilter()
     initializeCollections = true
     classNamePrefix = ''
     classNameSuffix = ''
+    fileExtensions = [] as String[]
     includeAdditionalProperties = true
     includeAccessors = true
     targetVersion = '1.6'
-    includeDynamicAccessors = true
+    includeDynamicAccessors = false
+    formatDateTimes = false
   }
 
   @Override
@@ -126,8 +138,16 @@ public class JsonSchemaExtension implements GenerationConfig {
     customAnnotator = Class.forName(clazz, true, this.class.classLoader)
   }
 
+  public void setCustomAnnotator(Class clazz) {
+    customAnnotator = clazz
+  }
+
   public void setCustomRuleFactory(String clazz) {
     customRuleFactory = Class.forName(clazz, true, this.class.classLoader)
+  }
+
+  public void setCustomRuleFactory(Class clazz) {
+    customRuleFactory = clazz
   }
 
   public void setSourceType(String s) {
@@ -143,7 +163,9 @@ public class JsonSchemaExtension implements GenerationConfig {
        |targetPackage = ${targetPackage}
        |propertyWordDelimiters = ${Arrays.toString(propertyWordDelimiters)}
        |useLongIntegers = ${useLongIntegers}
+       |useBigIntegers = ${useBigIntegers}
        |useDoubleNumbers = ${useDoubleNumbers}
+       |useBigDecimals = ${useBigDecimals}
        |includeHashcodeAndEquals = ${includeHashcodeAndEquals}
        |includeConstructors = ${includeConstructors}
        |includeToString = ${includeToString}
@@ -151,6 +173,7 @@ public class JsonSchemaExtension implements GenerationConfig {
        |customAnnotator = ${customAnnotator.getName()}
        |customRuleFactory = ${customRuleFactory.getName()}
        |includeJsr303Annotations = ${includeJsr303Annotations}
+       |includeJsr305Annotations = ${includeJsr305Annotations}
        |sourceType = ${sourceType.toString().toLowerCase()}
        |removeOldOutput = ${removeOldOutput}
        |outputEncoding = ${outputEncoding}
@@ -162,11 +185,20 @@ public class JsonSchemaExtension implements GenerationConfig {
        |timeType = ${timeType}
        |useCommonsLang3 = ${useCommonsLang3}
        |parcelable = ${parcelable}
+       |serializable = ${serializable}
        |initializeCollections = ${initializeCollections}
        |classNamePrefix = ${classNamePrefix}
        |classNameSuffix = ${classNameSuffix}
+       |fileExtensions = ${Arrays.toString(fileExtensions)}
+       |includeAccessors = ${includeAccessors}
        |targetVersion = ${targetVersion}
        |includeDynamicAccessors = ${includeDynamicAccessors}
+       |formatDateTimes = ${formatDateTimes}
      """.stripMargin()
   }
+  
+  public boolean isFormatDateTimes() {
+    return formatDateTimes;
+  }
+  
 }

@@ -22,22 +22,31 @@ import static org.junit.Assert.*;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.net.URI;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
+import org.jsonschema2pojo.integration.util.Jsonschema2PojoRule;
 import org.junit.BeforeClass;
+import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 
 public class DefaultIT {
+    
+    @ClassRule public static Jsonschema2PojoRule classSchemaRule = new Jsonschema2PojoRule();
+    @Rule public Jsonschema2PojoRule schemaRule = new Jsonschema2PojoRule();
 
     private static Class<?> classWithDefaults;
 
     @BeforeClass
     public static void generateAndCompileClass() throws ClassNotFoundException {
 
-        ClassLoader resultsClassLoader = generateAndCompile("/schema/default/default.json", "com.example");
+        ClassLoader resultsClassLoader = classSchemaRule.generateAndCompile("/schema/default/default.json", "com.example");
 
         classWithDefaults = resultsClassLoader.loadClass("com.example.Default");
 
@@ -77,6 +86,18 @@ public class DefaultIT {
     }
 
     @Test
+    public void integerPropertyHasCorrectDefaultBigIntegerValue() throws Exception {
+
+        ClassLoader resultsClassLoader = schemaRule.generateAndCompile("/schema/default/default.json", "com.example", config("useBigIntegers", true));
+        Class<?> c = resultsClassLoader.loadClass("com.example.Default");
+
+        Object instance = c.newInstance();
+        Method getter = c.getMethod("getIntegerWithDefault");
+        assertThat((BigInteger) getter.invoke(instance), is(equalTo(new BigInteger("1337"))));
+
+    }
+
+    @Test
     public void numberPropertyHasCorrectDefaultValue() throws NoSuchMethodException, InstantiationException, IllegalAccessException, InvocationTargetException {
 
         Object instance = classWithDefaults.newInstance();
@@ -84,6 +105,18 @@ public class DefaultIT {
         Method getter = classWithDefaults.getMethod("getNumberWithDefault");
 
         assertThat((Double) getter.invoke(instance), is(equalTo(Double.valueOf("1.337"))));
+
+    }
+
+    @Test
+    public void numberPropertyHasCorrectDefaultBigDecimalValue() throws Exception {
+
+        ClassLoader resultsClassLoader = schemaRule.generateAndCompile("/schema/default/default.json", "com.example", config("useBigDecimals", true));
+        Class<?> c = resultsClassLoader.loadClass("com.example.Default");
+
+        Object instance = c.newInstance();
+        Method getter = c.getMethod("getNumberWithDefault");
+        assertThat((BigDecimal) getter.invoke(instance), is(equalTo(new BigDecimal("1.337"))));
 
     }
 
@@ -128,6 +161,15 @@ public class DefaultIT {
         Method getter = classWithDefaults.getMethod("getUtcmillisecWithDefault");
 
         assertThat((Long) getter.invoke(instance), is(equalTo(123456789L)));
+
+    }
+
+    @Test
+    public void uriPropertyHasCorrectDefaultValue() throws Exception {
+
+        Object instance = classWithDefaults.newInstance();
+        Method getter = classWithDefaults.getMethod("getUriWithDefault");
+        assertThat((URI) getter.invoke(instance), is(URI.create("http://example.com")));
 
     }
 
@@ -197,6 +239,25 @@ public class DefaultIT {
 
         // list should be mutable
         assertThat(defaultList.add("anotherString"), is(true));
+
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void arrayPropertyHasCorrectDefaultUriValues() throws Exception {
+
+        Object instance = classWithDefaults.newInstance();
+        Method getter = classWithDefaults.getMethod("getArrayWithUriDefault");
+        assertThat(getter.invoke(instance), is(instanceOf(List.class)));
+
+        List<URI> defaultList = (List<URI>) getter.invoke(instance);
+
+        assertThat(defaultList.size(), is(2));
+        assertThat(defaultList.get(0), is(equalTo(URI.create("http://example.com/p/1"))));
+        assertThat(defaultList.get(1), is(equalTo(URI.create("http://example.com/p/2"))));
+
+        // list should be mutable
+        assertThat(defaultList.add(URI.create("")), is(true));
 
     }
 

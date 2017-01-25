@@ -23,10 +23,23 @@ import com.sun.codemodel.JFieldVar;
 import com.sun.codemodel.JMethod;
 
 /**
- * A default implemenation of the Annotator interface that makes it easier to
- * plug in different Annotator implemenations.
+ * A default implementation of the Annotator interface that makes it easier to
+ * plug in different Annotator implementations.
+ * <p>
+ * Annotators that need the generation configuration should add a constructor
+ * with {@link GenerationConfig} arg. Annotators that don't need the
+ * configuration need only add a default constructor.
  */
 public abstract class AbstractAnnotator implements Annotator {
+
+    private GenerationConfig generationConfig;
+
+    public AbstractAnnotator() {
+    }
+
+    public AbstractAnnotator(GenerationConfig generationConfig) {
+        this.generationConfig = generationConfig;
+    }
 
     @Override
     public void propertyOrder(JDefinedClass clazz, JsonNode propertiesNode) {
@@ -76,6 +89,14 @@ public abstract class AbstractAnnotator implements Annotator {
 
     @Override
     public void additionalPropertiesField(JFieldVar field, JDefinedClass clazz, String propertyName) {
+    }
+
+    public GenerationConfig getGenerationConfig() {
+        return generationConfig;
+    }
+
+    @Override
+    public void dateField(JFieldVar field, JsonNode node) {
     }
 
 }

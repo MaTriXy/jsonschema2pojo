@@ -93,6 +93,16 @@ public interface GenerationConfig {
     boolean isUseLongIntegers();
 
     /**
+     * Gets the 'useBigIntegers' configuration option.
+     *
+     * @return Whether to use the java type {@link java.math.BigInteger} instead
+     *         of <code>int</code> (or {@link java.lang.Integer}) when
+     *         representing the JSON Schema type 'integer'. Note that this
+     *         configuration overrides {@link #isUseLongIntegers()}.
+     */
+    boolean isUseBigIntegers();
+
+    /**
      * Gets the 'useDoubleNumbers' configuration option.
      *
      * @return Whether to use the java type <code>double</code> (or
@@ -101,6 +111,17 @@ public interface GenerationConfig {
      *         'number'.
      */
     boolean isUseDoubleNumbers();
+
+
+    /**
+     * Gets the 'useBigDecimals' configuration option.
+     *
+     * @return Whether to use the java type {@link java.math.BigDecimal} instead
+     *         of <code>float</code> (or {@link java.lang.Float}) when
+     *         representing the JSON Schema type 'number'. Note that this
+     *         configuration overrides {@link #isUseDoubleNumbers()}.
+     */
+    boolean isUseBigDecimals();
 
     /**
      * Gets the 'includeHashcodeAndEquals' configuration option.
@@ -134,6 +155,9 @@ public interface GenerationConfig {
      *         <li><code>gson</code> (apply annotations from the
      *         <a href="https://code.google.com/p/google-gson/">gson</a>
      *         library)</li>
+     *         <li><code>moshi1</code> (apply annotations from the
+     *         <a href="https://github.com/square/moshi">moshi</a>
+     *         library)</li>
      *         <li><code>none</code> (apply no annotations at all)</li>
      *         </ul>
      * @see AnnotatorFactory
@@ -165,6 +189,16 @@ public interface GenerationConfig {
      *         generated Java types.
      */
     boolean isIncludeJsr303Annotations();
+
+    /**
+     * Gets the 'includeJsr305Annotations' configuration option.
+     *
+     * @return Whether to include
+     *         <a href="http://jcp.org/en/jsr/detail?id=305">JSR-305</a>
+     *         annotations (for schema rules like Nullable, NonNull, etc) in
+     *         generated Java types.
+     */
+    boolean isIncludeJsr305Annotations();
 
     /**
      * Gets the 'sourceType' configuration option.
@@ -243,6 +277,13 @@ public interface GenerationConfig {
     boolean isParcelable();
 
     /**
+     * Gets the 'serializable' configuration option.
+     *
+     * @return Whether to make the generated types 'serializable'
+     */
+    boolean isSerializable();
+
+    /**
      * Gets the file filter used to isolate the schema mapping files in the
      * source directories.
      *
@@ -260,16 +301,23 @@ public interface GenerationConfig {
     /**
      * Gets the 'getClassNamePrefix' configuration option.
      *
-     * @return Whether to initialize collections with empty instance or null.
+     * @return Whether to add a prefix to generated classes.
      */
     String getClassNamePrefix();
 
     /**
      * Gets the 'getClassNameSuffix' configuration option.
      *
-     * @return Whether to initialize collections with empty instance or null.
+     * @return Whether to add a suffix to generated classes.
      */
     String getClassNameSuffix();
+
+    /**
+     * Gets the 'fileExtensions' configuration option.
+     *
+     * @return An array of strings that should be considered as file extensions and therefore not included in class names.
+     */
+    String[] getFileExtensions();
 
     /**
      * Gets the 'includeConstructors' configuration option.
@@ -305,7 +353,7 @@ public interface GenerationConfig {
 
     /**
      * Gets the 'targetVersion' configuration option.
-     * 
+     *
      *  @return The target version for generated source files.
      */
     String getTargetVersion();
@@ -364,5 +412,13 @@ public interface GenerationConfig {
      *         date-time) to generated Java types.
      */
     String getTimeType();
+    
+    /**
+     * Gets the `formatDateTime` configuration option 
+     *
+     * @return Whether the fields of type <code>date-type</code> have the <code>@JsonFormat</code> annotation 
+     *         with pattern set to the default value of <code>yyyy-MM-dd'T'HH:mm:ss.SSSZ</code> 
+     */
+    boolean isFormatDateTimes();
 
 }

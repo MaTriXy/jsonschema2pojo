@@ -38,6 +38,7 @@
             <li><code>JACKSON2</code> (apply annotations from the <a href="https://github.com/FasterXML/jackson-annotations">Jackson 2.x</a> library)</li>
             <li><code>JACKSON1</code> (apply annotations from the <a href="http://jackson.codehaus.org/">Jackson 1.x</a> library)</li>
             <li><code>GSON</code> (apply annotations from the <a href="https://code.google.com/p/google-gson//">Gson</a> library)</li>
+            <li><code>MOSHI1</code> (apply annotations from the <a href="https://github.com/square/moshi//">Moshi 1.x</a> library)</li>
             <li><code>NONE</code> (apply no annotations at all)</li>
           </ul>
         </td>
@@ -50,8 +51,13 @@
       </tr>
       <tr>
         <td valign="top">classNameSuffix</td>
-        <td valign="top">Whether to add a Suffix to generated classes</td>
+        <td valign="top">Whether to add a suffix to generated classes</td>
         <td align="center" valign="top">No (default <code>""</code>)</td>
+      </tr>
+      <tr>
+        <td valign="top">fileExtensions</td>
+        <td valign="top">A string containing file extensions that should be considered full extensions and therefore ignored when generating classnames.</td>
+        <td align="center" valign="top">No (default <code>""</code> (none))</td>
       </tr>
       <tr>
         <td valign="top">classpath</td>
@@ -109,7 +115,7 @@
       <tr>
         <td valign="top">includeDynamicAccessors</td>
         <td valign="top">Whether to include dynamic getters, setters, and builders or to omit these methods.</td>
-        <td align="center" valign="top">No (default <code>true</code>)</td>
+        <td align="center" valign="top">No (default <code>false</code>)</td>
       </tr>
       <tr>
         <td valign="top">includeConstructors</td>
@@ -144,6 +150,18 @@
         <td align="center" valign="top">No (default <code>false</code>)</td>
       </tr>
       <tr>
+        <td valign="top">includeJsr305Annotations</td>
+        <td valign="top">Whether to include <a href="http://jcp.org/en/jsr/detail?id=305">JSR-305</a> annotations (for defect detection) in generated Java types.
+          <p>
+          Schema rules and the annotation they produce:
+          <ul>
+            <li>required = <code>@NonNull</code>
+          </ul>
+          A Java field which is required will have the <code>@NonNull</code> added, and <code>@Nullable</code> on all other fields.
+        </td>
+        <td align="center" valign="top">No (default <code>false</code>)</td>
+      </tr>
+      <tr>
         <td valign="top">includeToString</td>
         <td valign="top">Whether to use include a <code>toString</code> method in generated Java types.</td>
         <td align="center" valign="top">No (default <code>true</code>)</td>
@@ -161,6 +179,11 @@
       <tr>
         <td valign="top">parcelable</td>
         <td valign="top">**EXPERIMENTAL** Whether to make the generated types 'parcelable' (for Android development).</td>
+        <td align="center" valign="top">No (default <code>false</code>)</td>
+      </tr>
+      <tr>
+        <td valign="top">serializable</td>
+        <td valign="top">Whether to make the generated types 'serializable'.</td>
         <td align="center" valign="top">No (default <code>false</code>)</td>
       </tr>
       <tr>
@@ -209,6 +232,11 @@
         <td align="center" valign="top">No (default <code>true</code>)</td>
       </tr>
       <tr>
+        <td valign="top">useBigDecimals</td>
+        <td valign="top">Whether to use the java type <code>BigDecimal</code> instead of <code>float</code> (or <code>java.lang.Float</code>) when representing the JSON Schema type 'number'. Note that this overrides <code>useDoubleNumbers</code>.</td>
+        <td align="center" valign="top">No (default <code>false</code>)</td>
+      </tr>
+      <tr>
         <td valign="top">useJodaDates</td>
         <td valign="top">Whether to use <code>org.joda.time.DateTime</code> instead of <code>java.util.Date</code>  when adding date-time type fields to generated Java types.</td>
         <td align="center" valign="top">No (default <code>false</code>)</td>
@@ -226,6 +254,11 @@
       <tr>
         <td valign="top">useLongIntegers</td>
         <td valign="top">Whether to use the java type <code>long</code> (or <code>Long</code>) instead of <code>int</code> (or <code>Integer</code>) when representing the JSON Schema type 'integer'.</td>
+        <td align="center" valign="top">No (default <code>false</code>)</td>
+      </tr>
+      <tr>
+        <td valign="top">useBigIntegers</td>
+        <td valign="top">Whether to use the java type <code>BigInteger</code> instead of <code>int</code> (or <code>java.lang.Integer</code>) when representing the JSON Schema type 'integer'. Note that this overrides <code>useLongIntegers</code>.</td>
         <td align="center" valign="top">No (default <code>false</code>)</td>
       </tr>
       <tr>
@@ -267,6 +300,12 @@
           </ul>
         </td>
         <td align="center" valign="top">No</td>
+      </tr>
+      <tr>
+        <td valign="top">formatDateTimes</td>
+        <td valign="top">Whether the fields of type <code>date-time</code> have the <code>@JsonFormat</code> annotation with pattern set to the default value of <code>yyyy-MM-dd'T'HH:mm:ss.SSS</code> and timezone set to default value of <code>UTC</code>
+        </td>
+        <td align="center" valign="top">No (default <code>false</code>)</td>
       </tr>
     </table>
 

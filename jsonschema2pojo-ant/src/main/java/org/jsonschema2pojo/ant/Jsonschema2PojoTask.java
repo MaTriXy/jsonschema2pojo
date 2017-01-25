@@ -77,7 +77,11 @@ public class Jsonschema2PojoTask extends Task implements GenerationConfig {
 
     private boolean useLongIntegers;
 
+    private boolean useBigIntegers = false;
+
     private boolean useDoubleNumbers = true;
+
+    private boolean useBigDecimals = false;
 
     private boolean includeHashcodeAndEquals = true;
 
@@ -90,6 +94,8 @@ public class Jsonschema2PojoTask extends Task implements GenerationConfig {
     private Class<? extends RuleFactory> customRuleFactory = RuleFactory.class;
 
     private boolean includeJsr303Annotations = false;
+
+    private boolean includeJsr305Annotations = false;
 
     private SourceType sourceType = SourceType.JSONSCHEMA;
 
@@ -109,27 +115,33 @@ public class Jsonschema2PojoTask extends Task implements GenerationConfig {
 
     private boolean parcelable = false;
 
+    private boolean serializable = false;
+
     private boolean initializeCollections = true;
 
     private String classNamePrefix = "";
 
     private String classNameSuffix = "";
 
+    private String[] fileExtensions = new String[] {};
+
     private boolean constructorsRequiredPropertiesOnly = false;
 
     private boolean includeAdditionalProperties = true;
 
     private boolean includeAccessors = true;
-    
+
     private String targetVersion = "1.6";
 
-    private boolean includeDynamicAccessors = true;
+    private boolean includeDynamicAccessors = false;
 
     private String dateTimeType = null;
 
     private String timeType = null;
 
     private String dateType = null;
+    
+    private boolean formatDateTimes = false;
 
 
     /**
@@ -278,6 +290,19 @@ public class Jsonschema2PojoTask extends Task implements GenerationConfig {
     }
 
     /**
+     * Sets the 'useBigIntegers' property of this class.
+     *
+     * @param useBigIntegers
+     *            Whether to use the java type {@link java.math.BigInteger}
+     *            instead of <code>int</code> (or {@link java.lang.Integer})
+     *            when representing the JSON Schema type 'integer'. Note that
+     *            this configuration overrides {@link #isUseLongIntegers()}.
+     */
+    public void setUseBigIntegers(boolean useBigIntegers) {
+        this.useBigIntegers = useBigIntegers;
+    }
+
+    /**
      * Sets the 'useDoubleNumbers' property of this class
      *
      * @param useDoubleNumbers
@@ -288,6 +313,19 @@ public class Jsonschema2PojoTask extends Task implements GenerationConfig {
      */
     public void setUseDoubleNumbers(boolean useDoubleNumbers) {
         this.useDoubleNumbers = useDoubleNumbers;
+    }
+
+    /**
+     * Sets the 'useBigDecimals' property of this class
+     *
+     * @param useBigDecimals
+     *            Whether to use the java type {@link java.math.BigDecimal}
+     *            instead of <code>float</code> (or {@link java.lang.Float})
+     *            when representing the JSON Schema type 'number'. Note that
+     *            this configuration overrides {@link #isUseDoubleNumbers()}.
+     */
+    public void setUseBigDecimals(boolean useBigDecimals) {
+        this.useBigDecimals = useBigDecimals;
     }
 
     /**
@@ -424,6 +462,19 @@ public class Jsonschema2PojoTask extends Task implements GenerationConfig {
     }
 
     /**
+     * Sets the 'includeJsr305Annotations' property of this class
+     *
+     * @param includeJsr305Annotations
+     *            Whether to include
+     *            <a href="http://jcp.org/en/jsr/detail?id=305">JSR-305</a>
+     *            annotations (for schema rules like Nullable, NonNull, etc) in
+     *            generated Java types.
+     */
+    public void setIncludeJsr305Annotations(boolean includeJsr305Annotations) {
+        this.includeJsr305Annotations = includeJsr305Annotations;
+    }
+
+    /**
      * Sets the 'sourceType' property of this class
      *
      * @param sourceType
@@ -525,6 +576,16 @@ public class Jsonschema2PojoTask extends Task implements GenerationConfig {
     }
 
     /**
+     * Sets the 'serializable' property of this class
+     *
+     * @param serializable
+     *            Whether to make the generated types 'serializable'.
+     */
+    public void setSerializable(boolean serializable) {
+        this.serializable = serializable;
+    }
+
+    /**
      * Sets the 'initializeCollections' property of this class
      *
      * @param initializeCollections
@@ -532,6 +593,37 @@ public class Jsonschema2PojoTask extends Task implements GenerationConfig {
      */
     public void setInitializeCollections(boolean initializeCollections) {
         this.initializeCollections = initializeCollections;
+    }
+
+    /**
+     * Sets the 'classNamePrefix' property of this class
+     *
+     * @param classNamePrefix
+     *            Whether to add a prefix to generated classes.
+     */
+    public void setClassNamePrefix(String classNamePrefix) {
+        this.classNamePrefix = classNamePrefix;
+    }
+
+    /**
+     * Sets the 'classNameSuffix' property of this class
+     *
+     * @param classNameSuffix
+     *            Whether to add a suffix to generated classes.
+     */
+    public void setClassNameSuffix(String classNameSuffix) {
+        this.classNameSuffix = classNameSuffix;
+    }
+
+    /**
+     * Sets the 'fileExtensions' property of this class
+     *
+     * @param classNameSuffix
+     *            The array of strings that should be considered as file
+     *            extensions and therefore not included in class names.
+     */
+    public void setFileExtensions(String[] fileExtensions) {
+        this.fileExtensions = fileExtensions;
     }
 
     /**
@@ -577,6 +669,18 @@ public class Jsonschema2PojoTask extends Task implements GenerationConfig {
      */
     public void setIncludeDynamicAccessors(boolean includeDynamicAccessors) {
         this.includeDynamicAccessors = includeDynamicAccessors;
+    }
+    
+    /**
+     * Sets the 'formatDateTimes' property of this class
+     *
+     * @param formatDateTimes
+     *            Whether the fields of type <code>date-type</code> have the <code>@JsonFormat</code> annotation 
+     *            with pattern set to the default value of <code>yyyy-MM-dd'T'HH:mm:ss.SSS</code> 
+     *            and timezone set to default value of `UTC`
+     */
+    public void setFormatDateTime(boolean formatDateTimes) {
+        this.formatDateTimes = formatDateTimes;
     }
 
     @Override
@@ -659,6 +763,11 @@ public class Jsonschema2PojoTask extends Task implements GenerationConfig {
     }
 
     @Override
+    public boolean isIncludeJsr305Annotations() {
+        return includeJsr305Annotations;
+    }
+
+    @Override
     public SourceType getSourceType() {
         return sourceType;
     }
@@ -722,6 +831,11 @@ public class Jsonschema2PojoTask extends Task implements GenerationConfig {
     }
 
     @Override
+    public boolean isSerializable() {
+        return serializable;
+    }
+
+    @Override
     public FileFilter getFileFilter() {
         return new AllFileFilter();
     }
@@ -739,6 +853,11 @@ public class Jsonschema2PojoTask extends Task implements GenerationConfig {
     @Override
     public String getClassNameSuffix() {
         return classNameSuffix;
+    }
+
+    @Override
+    public String[] getFileExtensions() {
+        return fileExtensions;
     }
 
     @Override
@@ -785,4 +904,20 @@ public class Jsonschema2PojoTask extends Task implements GenerationConfig {
     public String getTimeType() {
         return timeType;
     }
+
+    @Override
+    public boolean isUseBigIntegers() {
+        return useBigIntegers;
+    }
+
+    @Override
+    public boolean isUseBigDecimals() {
+        return useBigDecimals;
+    }
+
+    @Override
+    public boolean isFormatDateTimes() {
+        return formatDateTimes;
+    }
+
 }

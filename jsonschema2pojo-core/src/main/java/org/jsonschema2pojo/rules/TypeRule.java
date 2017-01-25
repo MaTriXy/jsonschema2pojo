@@ -17,8 +17,10 @@
 package org.jsonschema2pojo.rules;
 
 import static org.jsonschema2pojo.rules.PrimitiveTypes.*;
+import static org.jsonschema2pojo.util.TypeUtil.*;
 
-import java.util.Iterator;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 
 import org.jsonschema2pojo.GenerationConfig;
 import org.jsonschema2pojo.Schema;
@@ -57,12 +59,12 @@ public class TypeRule implements Rule<JClassContainer, JType> {
      * <ul>
      * <li>"type":"any" =&gt; {@link java.lang.Object}
      * <li>"type":"array" =&gt; Either {@link java.util.Set} or
+     * {@link java.util.List}, see {@link ArrayRule}
      * <li>"type":"boolean" =&gt; <code>boolean</code>
      * <li>"type":"integer" =&gt; <code>int</code>
      * <li>"type":"null" =&gt; {@link java.lang.Object}
      * <li>"type":"number" =&gt; <code>double</code>
      * <li>"type":"object" =&gt; Generated type (see {@link ObjectRule})
-     * {@link java.util.List}, see {@link ArrayRule}
      * <li>"type":"string" =&gt; {@link java.lang.String} (or alternative based
      * on presence of "format", see {@link FormatRule})
      * </ul>
@@ -83,12 +85,17 @@ public class TypeRule implements Rule<JClassContainer, JType> {
 
         JType type;
 
-        if (propertyTypeName.equals("object") || (node.has("properties") && node.path("properties").size() > 0)) {
+        if (propertyTypeName.equals("object") || node.has("properties") && node.path("properties").size() > 0) {
 
             type = ruleFactory.getObjectRule().apply(nodeName, node, jClassContainer.getPackage(), schema);
         } else if (node.has("javaType")) {
+            String typeName = node.path("javaType").asText();
 
-            type = getJavaType(node.path("javaType").asText(), jClassContainer.owner());
+            if (isPrimitive(typeName, jClassContainer.owner())) {
+                type = primitiveType(typeName, jClassContainer.owner());
+            } else {
+                type = resolveType(jClassContainer, typeName);
+            }
         } else if (propertyTypeName.equals("string")) {
 
             type = jClassContainer.owner().ref(String.class);
@@ -120,8 +127,8 @@ public class TypeRule implements Rule<JClassContainer, JType> {
 
     private String getTypeName(JsonNode node) {
         if (node.has("type") && node.get("type").isArray() && node.get("type").size() > 0) {
-            for (Iterator<JsonNode> typeNames = node.get("type").iterator(); typeNames.hasNext();) {
-                String typeName = typeNames.next().asText();
+            for (JsonNode jsonNode : node.get("type")) {
+                String typeName = jsonNode.asText();
                 if (!typeName.equals("null")) {
                     return typeName;
                 }
@@ -148,9 +155,11 @@ public class TypeRule implements Rule<JClassContainer, JType> {
      */
     private JType getIntegerType(JCodeModel owner, JsonNode node, GenerationConfig config) {
 
-        if (config.isUseLongIntegers() ||
-                (node.has("minimum") && node.get("minimum").isLong()) ||
-                (node.has("maximum") && node.get("maximum").isLong())) {
+        if (config.isUseBigIntegers()) {
+            return unboxIfNecessary(owner.ref(BigInteger.class), config);
+        } else if (config.isUseLongIntegers() ||
+                node.has("minimum") && node.get("minimum").isLong() ||
+                node.has("maximum") && node.get("maximum").isLong()) {
             return unboxIfNecessary(owner.ref(Long.class), config);
         } else {
             return unboxIfNecessary(owner.ref(Integer.class), config);
@@ -163,21 +172,14 @@ public class TypeRule implements Rule<JClassContainer, JType> {
      */
     private JType getNumberType(JCodeModel owner, JsonNode node, GenerationConfig config) {
 
-        if (config.isUseDoubleNumbers()) {
+        if (config.isUseBigDecimals()) {
+            return unboxIfNecessary(owner.ref(BigDecimal.class), config);
+        } else if (config.isUseDoubleNumbers()) {
             return unboxIfNecessary(owner.ref(Double.class), config);
         } else {
             return unboxIfNecessary(owner.ref(Float.class), config);
         }
 
-    }
-
-    private JType getJavaType(String javaTypeName, JCodeModel owner) {
-
-        if (isPrimitive(javaTypeName, owner)) {
-            return primitiveType(javaTypeName, owner);
-        } else {
-            return owner.ref(javaTypeName);
-        }
     }
 
 }

@@ -27,6 +27,10 @@ import com.sun.codemodel.JExpression;
 import com.sun.codemodel.JFieldVar;
 import com.sun.codemodel.JInvocation;
 import com.sun.codemodel.JType;
+
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.net.URI;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -109,8 +113,14 @@ public class DefaultRule implements Rule<JFieldVar, JFieldVar> {
         } else if (fieldType.fullName().equals(int.class.getName())) {
             return JExpr.lit(Integer.parseInt(node.asText()));
 
+        } else if (fieldType.fullName().equals(BigInteger.class.getName())) {
+            return JExpr._new(fieldType).arg(JExpr.lit(node.asText()));
+
         } else if (fieldType.fullName().equals(double.class.getName())) {
             return JExpr.lit(Double.parseDouble(node.asText()));
+
+        } else if (fieldType.fullName().equals(BigDecimal.class.getName())) {
+            return JExpr._new(fieldType).arg(JExpr.lit(node.asText()));
 
         } else if (fieldType.fullName().equals(boolean.class.getName())) {
             return JExpr.lit(Boolean.parseBoolean(node.asText()));
@@ -135,6 +145,10 @@ public class DefaultRule implements Rule<JFieldVar, JFieldVar> {
 
         } else if (fieldType.fullName().equals(float.class.getName())) {
             return JExpr.lit(Float.parseFloat(node.asText()));
+
+        } else if (fieldType.fullName().equals(URI.class.getName())) {
+            JInvocation invokeCreate = fieldType.owner().ref(URI.class).staticInvoke("create");
+            return invokeCreate.arg(JExpr.lit(node.asText()));
 
         } else if (fieldType instanceof JDefinedClass && ((JDefinedClass) fieldType).getClassType().equals(ClassType.ENUM)) {
 

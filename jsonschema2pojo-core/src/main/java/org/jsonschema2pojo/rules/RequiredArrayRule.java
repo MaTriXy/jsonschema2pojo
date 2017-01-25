@@ -16,19 +16,22 @@
 
 package org.jsonschema2pojo.rules;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.sun.codemodel.*;
-
-import org.jsonschema2pojo.Schema;
-import org.jsonschema2pojo.rules.RuleFactory;
-
-import javax.validation.constraints.NotNull;
-
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-import static org.apache.commons.lang3.StringUtils.capitalize;
+import javax.annotation.Nonnull;
+import javax.validation.constraints.NotNull;
+
+import org.jsonschema2pojo.Schema;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.sun.codemodel.JDefinedClass;
+import com.sun.codemodel.JDocComment;
+import com.sun.codemodel.JDocCommentable;
+import com.sun.codemodel.JFieldVar;
+import com.sun.codemodel.JMethod;
+import com.sun.codemodel.JType;
 
 /**
  * Applies the "required" JSON schema rule.
@@ -50,8 +53,18 @@ public class RequiredArrayRule implements Rule<JDefinedClass, JDefinedClass> {
     public JDefinedClass apply(String nodeName, JsonNode node, JDefinedClass jclass, Schema schema) {
         List<String> requiredFieldMethods = new ArrayList<String>();
 
-        for (Iterator iterator = node.elements(); iterator.hasNext(); ) {
-            String fieldName = ruleFactory.getNameHelper().getPropertyName(((JsonNode) iterator.next()).asText());
+        JsonNode properties = schema.getContent().get("properties");
+
+        for (Iterator<JsonNode> iterator = node.elements(); iterator.hasNext(); ) {
+            String requiredArrayItem = iterator.next().asText();
+
+            JsonNode propertyNode = null;
+
+            if (properties != null) {
+                propertyNode = properties.findValue(requiredArrayItem);
+            }
+
+            String fieldName = ruleFactory.getNameHelper().getPropertyName(requiredArrayItem, propertyNode);
             JFieldVar field = jclass.fields().get(fieldName);
 
             if (field == null) {
@@ -64,8 +77,12 @@ public class RequiredArrayRule implements Rule<JDefinedClass, JDefinedClass> {
                 addNotNullAnnotation(field);
             }
 
-            requiredFieldMethods.add(getGetterName(fieldName, field.type()));
-            requiredFieldMethods.add(getSetterName(fieldName));
+            if (ruleFactory.getGenerationConfig().isIncludeJsr305Annotations()) {
+                addNonnullAnnotation(field);
+            }
+
+            requiredFieldMethods.add(getGetterName(fieldName, field.type(), node));
+            requiredFieldMethods.add(getSetterName(fieldName, node));
         }
 
         updateGetterSetterJavaDoc(jclass, requiredFieldMethods);
@@ -74,8 +91,8 @@ public class RequiredArrayRule implements Rule<JDefinedClass, JDefinedClass> {
     }
 
     private void updateGetterSetterJavaDoc(JDefinedClass jclass, List<String> requiredFieldMethods) {
-        for (Iterator methods = jclass.methods().iterator(); methods.hasNext(); ) {
-            JMethod method = (JMethod) methods.next();
+        for (Iterator<JMethod> methods = jclass.methods().iterator(); methods.hasNext();) {
+            JMethod method = methods.next();
             if (requiredFieldMethods.contains(method.name())) {
                 addJavaDoc(method);
             }
@@ -86,18 +103,21 @@ public class RequiredArrayRule implements Rule<JDefinedClass, JDefinedClass> {
         field.annotate(NotNull.class);
     }
 
+    private void addNonnullAnnotation(JFieldVar field) {
+        field.annotate(Nonnull.class);
+    }
 
     private void addJavaDoc(JDocCommentable docCommentable) {
         JDocComment javadoc = docCommentable.javadoc();
         javadoc.append(REQUIRED_COMMENT_TEXT);
     }
 
-    private String getSetterName(String propertyName) {
-        return ruleFactory.getNameHelper().getSetterName(propertyName);
+    private String getSetterName(String propertyName, JsonNode node) {
+        return ruleFactory.getNameHelper().getSetterName(propertyName, node);
     }
 
-    private String getGetterName(String propertyName, JType type) {
-        return ruleFactory.getNameHelper().getGetterName(propertyName, type);
+    private String getGetterName(String propertyName, JType type, JsonNode node) {
+        return ruleFactory.getNameHelper().getGetterName(propertyName, type, node);
     }
 
 }
