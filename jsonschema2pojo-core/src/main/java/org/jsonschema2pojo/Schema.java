@@ -1,5 +1,5 @@
 /**
- * Copyright © 2010-2014 Nokia
+ * Copyright © 2010-2020 Nokia
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,13 +28,13 @@ public class Schema {
 
     private final URI id;
     private final JsonNode content;
-    private final JsonNode parentContent;
+    private final Schema parent;
     private JType javaType;
 
-    public Schema(URI id, JsonNode content, JsonNode parentContent) {
+    public Schema(URI id, JsonNode content, Schema parent) {
         this.id = id;
         this.content = content;
-        this.parentContent = parentContent;
+        this.parent = parent != null ? parent : this;
     }
 
     public JType getJavaType() {
@@ -59,10 +59,18 @@ public class Schema {
         return content;
     }
 
-    public JsonNode getParentContent() {
-        return parentContent;
+    public Schema getParent() {
+        return parent;
     }
-    
+
+    public Schema getGrandParent() {
+        if (parent == this) {
+            return this;
+        } else {
+            return this.parent.getGrandParent();
+        }
+    }
+
     public boolean isGenerated() {
         return javaType != null;
     }

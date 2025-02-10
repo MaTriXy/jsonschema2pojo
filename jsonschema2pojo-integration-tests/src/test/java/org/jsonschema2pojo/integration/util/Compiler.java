@@ -1,5 +1,5 @@
 /**
- * Copyright © 2010-2014 Nokia
+ * Copyright © 2010-2020 Nokia
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,13 +16,16 @@
 
 package org.jsonschema2pojo.integration.util;
 
+import static org.apache.commons.io.FileUtils.*;
+import static org.hamcrest.Matchers.*;
+import static org.junit.Assert.*;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.ArrayList;
-import java.util.Arrays;
-
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
 import javax.tools.DiagnosticListener;
@@ -33,10 +36,6 @@ import javax.tools.StandardLocation;
 import javax.tools.ToolProvider;
 
 import org.eclipse.jdt.internal.compiler.tool.EclipseCompiler;
-
-import static org.apache.commons.io.FileUtils.*;
-import static org.hamcrest.Matchers.*;
-import static org.junit.Assert.*;
 
 
 /**
@@ -57,7 +56,7 @@ public class Compiler {
         if (outputDirectory != null) {
             try {
                 fileManager.setLocation(StandardLocation.CLASS_OUTPUT,
-                        Arrays.asList(outputDirectory));
+                        Collections.singletonList(outputDirectory));
                 fileManager.setLocation(StandardLocation.CLASS_PATH, classpath);
             } catch (IOException e) {
                 throw new RuntimeException("could not set output directory", e);
@@ -66,7 +65,7 @@ public class Compiler {
 
         Iterable<? extends JavaFileObject> compilationUnits = fileManager.getJavaFileObjectsFromFiles(findAllSourceFiles(sourceDirectory));
 
-        ArrayList<String> options = new ArrayList<String>();
+        ArrayList<String> options = new ArrayList<>();
         options.add("-source");
         options.add(targetVersion);
         options.add("-target");

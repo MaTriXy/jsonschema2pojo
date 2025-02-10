@@ -1,5 +1,5 @@
 /**
- * Copyright © 2010-2014 Nokia
+ * Copyright © 2010-2020 Nokia
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,15 +16,18 @@
 
 package org.jsonschema2pojo.rules;
 
+import java.lang.annotation.Annotation;
+
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import javax.validation.constraints.NotNull;
 
 import org.jsonschema2pojo.Schema;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.sun.codemodel.JDocCommentable;
 import com.sun.codemodel.JFieldVar;
+
+import jakarta.validation.constraints.NotNull;
 
 /**
  * Applies the "required" schema rule.
@@ -52,6 +55,8 @@ public class RequiredRule implements Rule<JDocCommentable, JDocCommentable> {
      * @param node
      *            the "required" node, having a value <code>true</code> or
      *            <code>false</code>
+     * @param parent
+     *            the parent node
      * @param generatableType
      *            the class or method which may be marked as "required"
      * @return the JavaDoc comment attached to the generatableType, which
@@ -59,14 +64,18 @@ public class RequiredRule implements Rule<JDocCommentable, JDocCommentable> {
      *         required.
      */
     @Override
-    public JDocCommentable apply(String nodeName, JsonNode node, JDocCommentable generatableType, Schema schema) {
+    public JDocCommentable apply(String nodeName, JsonNode node, JsonNode parent, JDocCommentable generatableType, Schema schema) {
 
         if (node.asBoolean()) {
             generatableType.javadoc().append("\n(Required)");
 
             if (ruleFactory.getGenerationConfig().isIncludeJsr303Annotations()
                     && generatableType instanceof JFieldVar) {
-                ((JFieldVar) generatableType).annotate(NotNull.class);
+                final Class<? extends Annotation> notNullClass
+                        = ruleFactory.getGenerationConfig().isUseJakartaValidation()
+                        ? NotNull.class
+                        : javax.validation.constraints.NotNull.class;
+                ((JFieldVar) generatableType).annotate(notNullClass);
             }
 
             if (ruleFactory.getGenerationConfig().isIncludeJsr305Annotations()

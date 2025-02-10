@@ -1,5 +1,5 @@
 /**
- * Copyright © 2010-2014 Nokia
+ * Copyright © 2010-2020 Nokia
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,12 +16,18 @@
 
 package org.jsonschema2pojo.rules;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import com.sun.codemodel.*;
+import java.util.Iterator;
+
 import org.jsonschema2pojo.Schema;
 
-import java.util.Iterator;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.sun.codemodel.JBlock;
+import com.sun.codemodel.JDefinedClass;
+import com.sun.codemodel.JExpr;
+import com.sun.codemodel.JMethod;
+import com.sun.codemodel.JType;
+import com.sun.codemodel.JVar;
 
 /**
  * Applies the "properties" schema rule.
@@ -53,7 +59,7 @@ public class PropertiesRule implements Rule<JDefinedClass, JDefinedClass> {
      * @return the given jclass
      */
     @Override
-    public JDefinedClass apply(String nodeName, JsonNode node, JDefinedClass jclass, Schema schema) {
+    public JDefinedClass apply(String nodeName, JsonNode node, JsonNode parent, JDefinedClass jclass, Schema schema) {
         if (node == null) {
             node = JsonNodeFactory.instance.objectNode();
         }
@@ -61,13 +67,11 @@ public class PropertiesRule implements Rule<JDefinedClass, JDefinedClass> {
         for (Iterator<String> properties = node.fieldNames(); properties.hasNext(); ) {
             String property = properties.next();
 
-            ruleFactory.getPropertyRule().apply(property, node.get(property), jclass, schema);
+            ruleFactory.getPropertyRule().apply(property, node.get(property), node, jclass, schema);
         }
 
-        if (ruleFactory.getGenerationConfig().isGenerateBuilders()) {
-            if (!jclass._extends().name().equals("Object")) {
-                addOverrideBuilders(jclass, jclass.owner()._getClass(jclass._extends().fullName()));
-            }
+        if (ruleFactory.getGenerationConfig().isGenerateBuilders() && !jclass._extends().name().equals("Object")) {
+            addOverrideBuilders(jclass, jclass.owner()._getClass(jclass._extends().fullName()));
         }
 
         ruleFactory.getAnnotator().propertyOrder(jclass, node);
@@ -88,17 +92,18 @@ public class PropertiesRule implements Rule<JDefinedClass, JDefinedClass> {
     }
 
     private void addOverrideBuilder(JDefinedClass thisJDefinedClass, JMethod parentBuilder, JVar parentParam) {
-        
+
+        // Confirm that this class doesn't already have a builder method matching the same name as the parentBuilder
         if (thisJDefinedClass.getMethod(parentBuilder.name(), new JType[] {parentParam.type()}) == null) {
-        
+
             JMethod builder = thisJDefinedClass.method(parentBuilder.mods().getValue(), thisJDefinedClass, parentBuilder.name());
             builder.annotate(Override.class);
-    
+
             JVar param = builder.param(parentParam.type(), parentParam.name());
             JBlock body = builder.body();
             body.invoke(JExpr._super(), parentBuilder).arg(param);
             body._return(JExpr._this());
-    
+
         }
     }
 }

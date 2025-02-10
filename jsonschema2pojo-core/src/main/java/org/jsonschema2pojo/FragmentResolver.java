@@ -1,5 +1,5 @@
 /**
- * Copyright © 2010-2014 Nokia
+ * Copyright © 2010-2020 Nokia
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,9 +26,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 public class FragmentResolver {
 
-    public JsonNode resolve(JsonNode tree, String path) {
+    public JsonNode resolve(JsonNode tree, String path, String refFragmentPathDelimiters) {
 
-        return resolve(tree, new ArrayList<String>(asList(split(path, "#/."))));
+        return resolve(tree, new ArrayList<>(asList(split(path, refFragmentPathDelimiters))));
 
     }
 
@@ -48,10 +48,11 @@ public class FragmentResolver {
                 }
             }
 
-            if (tree.has(part)) {
-                return resolve(tree.get(part), path);
+            String decodedPart = JsonPointerUtils.decodeReferenceToken(part);
+            if (tree.has(decodedPart)) {
+                return resolve(tree.get(decodedPart), path);
             } else {
-                throw new IllegalArgumentException("Path not present: " + part);
+                throw new IllegalArgumentException("Path not present: " + decodedPart);
             }
         }
 

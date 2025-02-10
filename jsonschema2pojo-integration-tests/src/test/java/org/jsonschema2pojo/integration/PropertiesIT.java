@@ -1,5 +1,5 @@
 /**
- * Copyright © 2010-2014 Nokia
+ * Copyright © 2010-2020 Nokia
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,8 +16,8 @@
 
 package org.jsonschema2pojo.integration;
 
-import static org.jsonschema2pojo.integration.util.CodeGenerationHelper.config;
 import static org.hamcrest.Matchers.*;
+import static org.jsonschema2pojo.integration.util.CodeGenerationHelper.*;
 import static org.junit.Assert.*;
 
 import java.beans.IntrospectionException;
@@ -34,7 +34,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class PropertiesIT {
-    @Rule public Jsonschema2PojoRule schemaRule = new Jsonschema2PojoRule();
+    @Rule
+    public Jsonschema2PojoRule schemaRule = new Jsonschema2PojoRule();
 
     private final ObjectMapper mapper = new ObjectMapper();
 
@@ -84,7 +85,7 @@ public class PropertiesIT {
 
     @Test
     @SuppressWarnings("rawtypes")
-    public void usePrimitivesArgumentCausesPrimitiveTypes() throws ClassNotFoundException, IntrospectionException, InstantiationException, IllegalAccessException, InvocationTargetException {
+    public void usePrimitivesArgumentCausesPrimitiveTypes() throws ClassNotFoundException, IntrospectionException {
 
         ClassLoader resultsClassLoader = schemaRule.generateAndCompile("/schema/properties/primitiveProperties.json", "com.example", config("usePrimitives", true));
 
@@ -119,9 +120,10 @@ public class PropertiesIT {
     }
 
     @Test
-    public void propertyNamesThatAreJavaKeywordsCanBeSerialized() throws ClassNotFoundException, InstantiationException, IllegalAccessException, IOException {
+    public void propertyNamesThatAreJavaKeywordsCanBeSerialized() throws ClassNotFoundException, IOException {
 
-        ClassLoader resultsClassLoader = schemaRule.generateAndCompile("/schema/properties/propertiesThatAreJavaKeywords.json", "com.example");
+        ClassLoader resultsClassLoader = schemaRule.generateAndCompile("/schema/properties/propertiesThatAreJavaKeywords.json", "com.example",
+                config("propertyWordDelimiters", " -"));
 
         Class<?> generatedType = resultsClassLoader.loadClass("com.example.PropertiesThatAreJavaKeywords");
 
@@ -137,7 +139,7 @@ public class PropertiesIT {
     }
 
     @Test
-    public void propertyCalledClassCanBeSerialized() throws ClassNotFoundException, InstantiationException, IllegalAccessException, IOException {
+    public void propertyCalledClassCanBeSerialized() throws ClassNotFoundException, IOException {
 
         ClassLoader resultsClassLoader = schemaRule.generateAndCompile("/schema/properties/propertyCalledClass.json", "com.example");
 
@@ -174,5 +176,42 @@ public class PropertiesIT {
         assertThat(jsonified.has("PropertyTwo"), is(true));
         assertThat(jsonified.has(" PropertyThreeWithSpace"), is(true));
         assertThat(jsonified.has("propertyFour"), is(true));
+    }
+
+    @Test
+    public void propertyNamesAreAllUpperCasesAndWithUnderScores() throws Exception {
+        ClassLoader resultsClassLoader = schemaRule.generateAndCompile("/schema/properties/propertiesAreWithAllWordsUpperCases.json", "com.example");
+        Class<?> generatedType = resultsClassLoader.loadClass("com.example.AllWordsUpperCase");
+
+        Object instance = generatedType.newInstance();
+
+        new PropertyDescriptor("propertyOne", generatedType).getWriteMethod().invoke(instance, "1");
+        new PropertyDescriptor("propertyOneTwo", generatedType).getWriteMethod().invoke(instance, 2);
+        new PropertyDescriptor("propertyOneTwoThree", generatedType).getWriteMethod().invoke(instance, false);
+        new PropertyDescriptor("pROPERTYONETWOTHREEFour", generatedType).getWriteMethod().invoke(instance, "4");
+
+        JsonNode jsonified = mapper.valueToTree(instance);
+
+        assertNotNull(generatedType.getDeclaredField("propertyOne"));
+        assertNotNull(generatedType.getDeclaredField("propertyOneTwo"));
+        assertNotNull(generatedType.getDeclaredField("propertyOneTwoThree"));
+        assertNotNull(generatedType.getDeclaredField("pROPERTYONETWOTHREEFour"));
+
+        assertThat(jsonified.has("PROPERTY_ONE"), is(true));
+        assertThat(jsonified.has("PROPERTY_ONE_TWO"), is(true));
+        assertThat(jsonified.has("PROPERTY_ONE_TWO_THREE"), is(true));
+        assertThat(jsonified.has("PROPERTY_ONE_TWO_THREE_four"), is(true));
+    }
+
+    @Test
+    public void propertyNamesWithSpecialCharacters() throws NoSuchMethodException, ClassNotFoundException {
+        ClassLoader resultsClassLoader = schemaRule.generateAndCompile("/schema/properties/propertiesWithSpecialCharacters.json", "com.example");
+        Class<?> generatedType = resultsClassLoader.loadClass("com.example.PropertiesWithSpecialCharacters");
+
+        assertNotNull(generatedType.getDeclaredMethod("getVersv"));
+        assertNotNull(generatedType.getDeclaredMethod("getFooBar"));
+        assertNotNull(generatedType.getDeclaredMethod("get$RfcNumber"));
+        assertNotNull(generatedType.getDeclaredMethod("getOrgHispDhisCommonFileTypeValueOptions"));
+        assertNotNull(generatedType.getDeclaredMethod("getGood"));
     }
 }

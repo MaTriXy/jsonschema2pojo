@@ -1,5 +1,5 @@
 /**
- * Copyright © 2010-2013 Nokia
+ * Copyright © 2010-2020 Nokia
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,19 +16,29 @@
 
 package org.jsonschema2pojo.util;
 
-import android.os.Parcel;
-import android.os.Parcelable.Creator;
-import com.sun.codemodel.*;
+import static org.apache.commons.lang3.StringUtils.*;
 import static org.jsonschema2pojo.util.Models.*;
 
+import com.sun.codemodel.JClass;
+import com.sun.codemodel.JDefinedClass;
+import com.sun.codemodel.JExpr;
+import com.sun.codemodel.JFieldVar;
+import com.sun.codemodel.JMethod;
+import com.sun.codemodel.JMod;
+import com.sun.codemodel.JType;
+import com.sun.codemodel.JVar;
 
 public class ParcelableHelper {
 
     public void addWriteToParcel(JDefinedClass jclass) {
         JMethod method = jclass.method(JMod.PUBLIC, void.class, "writeToParcel");
-        JVar dest = method.param(Parcel.class, "dest");
+        JVar dest = method.param(jclass.owner().directClass("android.os.Parcel"), "dest");
         method.param(int.class, "flags");
-        
+
+        // Call super.writeToParcel
+        if (extendsParcelable(jclass)) {
+            method.body().directStatement("super.writeToParcel(dest, flags);");
+        }
         for (JFieldVar f : jclass.fields().values()) {
             if( (f.mods().getValue() & JMod.STATIC) == JMod.STATIC ) {
                 continue;
@@ -40,22 +50,54 @@ public class ParcelableHelper {
             }
         }
     }
-    
+
     public void addDescribeContents(JDefinedClass jclass) {
         JMethod method = jclass.method(JMod.PUBLIC, int.class, "describeContents");
         method.body()._return(JExpr.lit(0));
     }
-    
+
     public void addCreator(JDefinedClass jclass) {
-        JClass creatorType = jclass.owner().ref(Creator.class).narrow(jclass); 
+        JClass creatorType = jclass.owner().directClass("Creator").narrow(jclass);
         JDefinedClass creatorClass = jclass.owner().anonymousClass(creatorType);
-        
+
         addCreateFromParcel(jclass, creatorClass);
         addNewArray(jclass, creatorClass);
-        
+
         JFieldVar creatorField = jclass.field(JMod.PUBLIC | JMod.STATIC | JMod.FINAL, creatorType, "CREATOR");
         creatorField.init(JExpr._new(creatorClass));
     }
+
+    public void addConstructorFromParcel(JDefinedClass jclass) {
+        JMethod ctorFromParcel = jclass.constructor(JMod.PROTECTED);
+        JVar in = ctorFromParcel.param(jclass.owner().directClass("android.os.Parcel"), "in");
+
+        suppressWarnings(ctorFromParcel, "unchecked");
+
+        if (extendsParcelable(jclass)) {
+            ctorFromParcel.body().directStatement("super(in);");
+        }
+        for (JFieldVar f : jclass.fields().values()) {
+            if( (f.mods().getValue() & JMod.STATIC) == JMod.STATIC ) {
+                continue;
+            }
+            if (f.type().erasure().name().equals("List")) {
+                ctorFromParcel.body()
+                .invoke(in, "readList")
+                .arg(JExpr._this().ref(f))
+                .arg(JExpr.direct(getListType(f.type()) + ".class.getClassLoader()"));
+            } else {
+                ctorFromParcel.body().assign(
+                        JExpr._this().ref(f),
+                        JExpr.cast(
+                                f.type(),
+                                in.invoke("readValue").arg(JExpr.direct(f.type().erasure().name() + ".class.getClassLoader()"))
+                                )
+                        );
+            }
+
+        }
+    }
+
 
     private void addNewArray(JDefinedClass jclass, JDefinedClass creatorClass) {
         JMethod newArray = creatorClass.method(JMod.PUBLIC, jclass.array(), "newArray");
@@ -65,52 +107,26 @@ public class ParcelableHelper {
 
     private void addCreateFromParcel(JDefinedClass jclass, JDefinedClass creatorClass) {
         JMethod createFromParcel = creatorClass.method(JMod.PUBLIC, jclass, "createFromParcel");
-        JVar in = createFromParcel.param(Parcel.class, "in");
-        JVar instance = createFromParcel.body().decl(jclass, "instance", JExpr._new(jclass));
-        suppressWarnings(createFromParcel, "unchecked");
-        for (JFieldVar f : jclass.fields().values()) {
-            if( (f.mods().getValue() & JMod.STATIC) == JMod.STATIC ) {
-                continue;
-            }
-            if (f.type().erasure().name().equals("List")) {
-                createFromParcel.body()
-                        .invoke(in, "readList")
-                        .arg(instance.ref(f))
-                        .arg(JExpr.direct(getGenericType(f.type()) + ".class.getClassLoader()"));
-             } else {
-                createFromParcel.body().assign(
-                        instance.ref(f),
-                        JExpr.cast(
-                                f.type(),
-                                in.invoke("readValue").arg(JExpr.direct(f.type().erasure().name() + ".class.getClassLoader()"))
-                        )
-                );
-            }
-
-        }
-        createFromParcel.body()._return(instance);
+        JVar in = createFromParcel.param(jclass.owner().directClass("android.os.Parcel"), "in");
+        createFromParcel.body()._return(JExpr._new(jclass).arg(in));
     }
 
-    private String getGenericType(JType jType) {
-        if (jType.erasure().name().equals("List")) {
-            final String typeName = jType.fullName();
-            int start = 0;
-            int end = typeName.length();
-
-            for (int i = 0; i < typeName.length(); ++i) {
-                switch (typeName.charAt(i)) {
-                    case '<':
-                        start = i;
-                        break;
-                    case '>':
-                        end = i;
-                        break;
+    private boolean extendsParcelable(final JDefinedClass jclass) {
+        final java.util.Iterator<JClass> interfaces = jclass._extends() != null ? jclass._extends()._implements() : null;
+        if (interfaces != null) {
+            while (interfaces.hasNext()) {
+                final JClass iface = interfaces.next();
+                if (iface.erasure().name().equals("Parcelable")) {
+                    return true;
                 }
             }
-            // plus one for excluding '<'
-            return typeName.substring(start+1, end);
         }
-        return jType.erasure().name();
+        return false;
+    }
+
+    private String getListType(JType jType) {
+        final String typeName = jType.fullName();
+        return substringBeforeLast(substringAfter(typeName, "<"), ">");
     }
 
 }

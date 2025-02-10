@@ -1,5 +1,5 @@
 /**
- * Copyright © 2010-2014 Nokia
+ * Copyright © 2010-2020 Nokia
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,17 +16,31 @@
 
 package org.jsonschema2pojo.integration.util;
 
+import org.jsonschema2pojo.maven.Jsonschema2PojoMojo;
+
 import java.lang.reflect.Field;
 import java.util.Map;
 import java.util.Map.Entry;
-
-import org.jsonschema2pojo.maven.Jsonschema2PojoMojo;
+import org.apache.maven.plugin.logging.Log;
+import org.apache.maven.plugin.logging.SystemStreamLog;
 
 /**
  * A plugin mojo that allows the private property values usually only set by
  * Maven to be set programatically.
  */
 public class TestableJsonschema2PojoMojo extends Jsonschema2PojoMojo {
+
+    private static final Log LOGGER_NO_DEBUG = new SystemStreamLog() {
+        @Override
+        public void debug(CharSequence content) {
+        }
+        @Override
+        public void debug(Throwable error) {
+        }
+        @Override
+        public void debug(CharSequence content, Throwable error) {
+        }
+    };
 
     public TestableJsonschema2PojoMojo configure(Map<String, Object> configValues) {
         
@@ -36,6 +50,8 @@ public class TestableJsonschema2PojoMojo extends Jsonschema2PojoMojo {
         for (Entry<String, Object> value : configValues.entrySet()) {
             setPrivateField(value.getKey(), value.getValue());
         }
+
+        this.setLog(LOGGER_NO_DEBUG);
 
         return this;
     }
@@ -48,11 +64,7 @@ public class TestableJsonschema2PojoMojo extends Jsonschema2PojoMojo {
             field.setAccessible(true);
             field.set(this, value);
 
-        } catch (SecurityException e) {
-            throw new RuntimeException(e);
-        } catch (NoSuchFieldException e) {
-            throw new RuntimeException(e);
-        } catch (IllegalAccessException e) {
+        } catch (SecurityException | IllegalAccessException | NoSuchFieldException e) {
             throw new RuntimeException(e);
         }
 

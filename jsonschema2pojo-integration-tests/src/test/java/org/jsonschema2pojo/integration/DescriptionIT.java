@@ -1,5 +1,5 @@
 /**
- * Copyright © 2010-2014 Nokia
+ * Copyright © 2010-2020 Nokia
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,17 +21,20 @@ import static org.junit.Assert.*;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
 
 import org.jsonschema2pojo.integration.util.Jsonschema2PojoRule;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 
-import com.thoughtworks.qdox.JavaDocBuilder;
+import com.thoughtworks.qdox.JavaProjectBuilder;
 import com.thoughtworks.qdox.model.JavaClass;
 import com.thoughtworks.qdox.model.JavaField;
 import com.thoughtworks.qdox.model.JavaMethod;
-import com.thoughtworks.qdox.model.Type;
+import com.thoughtworks.qdox.model.JavaType;
+import com.thoughtworks.qdox.model.impl.DefaultJavaClass;
 
 public class DescriptionIT {
 
@@ -40,19 +43,19 @@ public class DescriptionIT {
     private static JavaClass classWithDescription;
 
     @BeforeClass
-    public static void generateClasses() throws ClassNotFoundException, IOException {
+    public static void generateClasses() throws IOException {
 
         schemaRule.generateAndCompile("/schema/description/description.json", "com.example");
         File generatedJavaFile = schemaRule.generated("com/example/Description.java");
 
-        JavaDocBuilder javaDocBuilder = new JavaDocBuilder();
+        JavaProjectBuilder javaDocBuilder = new JavaProjectBuilder();
         javaDocBuilder.addSource(generatedJavaFile);
 
         classWithDescription = javaDocBuilder.getClassByName("com.example.Description");
     }
 
     @Test
-    public void descriptionAppearsInClassJavadoc() throws IOException {
+    public void descriptionAppearsInClassJavadoc() {
 
         String javaDocComment = classWithDescription.getComment();
 
@@ -61,7 +64,7 @@ public class DescriptionIT {
     }
 
     @Test
-    public void descriptionAppearsInFieldJavadoc() throws IOException {
+    public void descriptionAppearsInFieldJavadoc() {
 
         JavaField javaField = classWithDescription.getFieldByName("description");
         String javaDocComment = javaField.getComment();
@@ -71,9 +74,9 @@ public class DescriptionIT {
     }
 
     @Test
-    public void descriptionAppearsInGetterJavadoc() throws IOException {
+    public void descriptionAppearsInGetterJavadoc() {
 
-        JavaMethod javaMethod = classWithDescription.getMethodBySignature("getDescription", new Type[] {});
+        JavaMethod javaMethod = classWithDescription.getMethodBySignature("getDescription", Collections.emptyList());
         String javaDocComment = javaMethod.getComment();
 
         assertThat(javaDocComment, containsString("A description for this property"));
@@ -81,9 +84,10 @@ public class DescriptionIT {
     }
 
     @Test
-    public void descriptionAppearsInSetterJavadoc() throws IOException {
+    public void descriptionAppearsInSetterJavadoc() {
 
-        JavaMethod javaMethod = classWithDescription.getMethodBySignature("setDescription", new Type[] { new Type("java.lang.String") });
+        final List<JavaType> parameterTypes = Collections.singletonList(new DefaultJavaClass("java.lang.String"));
+        JavaMethod javaMethod = classWithDescription.getMethodBySignature("setDescription", parameterTypes);
         String javaDocComment = javaMethod.getComment();
 
         assertThat(javaDocComment, containsString("A description for this property"));
@@ -91,7 +95,7 @@ public class DescriptionIT {
     }
 
     @Test
-    public void descriptionAppearsAfterTitleInJavadoc() throws IOException {
+    public void descriptionAppearsAfterTitleInJavadoc() {
 
         JavaField javaField = classWithDescription.getFieldByName("descriptionAndTitle");
         String javaDocComment = javaField.getComment();

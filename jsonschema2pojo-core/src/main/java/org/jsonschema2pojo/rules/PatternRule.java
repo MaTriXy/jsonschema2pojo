@@ -1,5 +1,5 @@
 /**
- * Copyright © 2010-2014 Nokia
+ * Copyright © 2010-2020 Nokia
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,12 +16,15 @@
 
 package org.jsonschema2pojo.rules;
 
-import javax.validation.constraints.Pattern;
+import java.lang.annotation.Annotation;
+
+import org.jsonschema2pojo.Schema;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import org.jsonschema2pojo.Schema;
 import com.sun.codemodel.JAnnotationUse;
 import com.sun.codemodel.JFieldVar;
+
+import jakarta.validation.constraints.Pattern;
 
 public class PatternRule implements Rule<JFieldVar, JFieldVar> {
 
@@ -32,14 +35,27 @@ public class PatternRule implements Rule<JFieldVar, JFieldVar> {
     }
 
     @Override
-    public JFieldVar apply(String nodeName, JsonNode node, JFieldVar field, Schema currentSchema) {
+    public JFieldVar apply(String nodeName, JsonNode node, JsonNode parent, JFieldVar field, Schema currentSchema) {
 
-        if (ruleFactory.getGenerationConfig().isIncludeJsr303Annotations()) {
-            JAnnotationUse annotation = field.annotate(Pattern.class);
+        if (ruleFactory.getGenerationConfig().isIncludeJsr303Annotations() && isApplicableType(field)) {
+            final Class<? extends Annotation> patternClass
+                    = ruleFactory.getGenerationConfig().isUseJakartaValidation()
+                    ? Pattern.class
+                    : javax.validation.constraints.Pattern.class;
+            JAnnotationUse annotation = field.annotate(patternClass);
             annotation.param("regexp", node.asText());
         }
 
         return field;
+    }
+
+    private boolean isApplicableType(JFieldVar field) {
+        try {
+            Class<?> fieldClass = Class.forName(field.type().boxify().fullName());
+            return String.class.isAssignableFrom(fieldClass);
+        } catch (ClassNotFoundException ignore) {
+            return false;
+        }
     }
 
 }

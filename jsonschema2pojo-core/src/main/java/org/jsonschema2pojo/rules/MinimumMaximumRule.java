@@ -1,5 +1,5 @@
 /**
- * Copyright © 2010-2014 Nokia
+ * Copyright © 2010-2020 Nokia
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,13 +16,16 @@
 
 package org.jsonschema2pojo.rules;
 
-import javax.validation.constraints.DecimalMax;
-import javax.validation.constraints.DecimalMin;
+import java.lang.annotation.Annotation;
+
+import org.jsonschema2pojo.Schema;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import org.jsonschema2pojo.Schema;
 import com.sun.codemodel.JAnnotationUse;
 import com.sun.codemodel.JFieldVar;
+
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
 
 public class MinimumMaximumRule implements Rule<JFieldVar, JFieldVar> {
 
@@ -33,23 +36,43 @@ public class MinimumMaximumRule implements Rule<JFieldVar, JFieldVar> {
     }
 
     @Override
-    public JFieldVar apply(String nodeName, JsonNode node, JFieldVar field, Schema currentSchema) {
+    public JFieldVar apply(String nodeName, JsonNode node, JsonNode parent, JFieldVar field, Schema currentSchema) {
 
-        if (ruleFactory.getGenerationConfig().isIncludeJsr303Annotations()) {
+        if (ruleFactory.getGenerationConfig().isIncludeJsr303Annotations() && isApplicableType(field)) {
 
             if (node.has("minimum")) {
-                JAnnotationUse annotation = field.annotate(DecimalMin.class);
+                final Class<? extends Annotation> decimalMinClass
+                        = ruleFactory.getGenerationConfig().isUseJakartaValidation()
+                        ? DecimalMin.class
+                        : javax.validation.constraints.DecimalMin.class;
+                JAnnotationUse annotation = field.annotate(decimalMinClass);
                 annotation.param("value", node.get("minimum").asText());
             }
 
             if (node.has("maximum")) {
-                JAnnotationUse annotation = field.annotate(DecimalMax.class);
+                final Class<? extends Annotation> decimalMaxClass
+                        = ruleFactory.getGenerationConfig().isUseJakartaValidation()
+                        ? DecimalMax.class
+                        : javax.validation.constraints.DecimalMax.class;
+                JAnnotationUse annotation = field.annotate(decimalMaxClass);
                 annotation.param("value", node.get("maximum").asText());
             }
 
         }
 
         return field;
+    }
+
+    private boolean isApplicableType(JFieldVar field) {
+        try {
+            Class<?> fieldClass = Class.forName(field.type().boxify().fullName());
+            // Support Strings and most number types except Double and Float, per docs on DecimalMax/Min annotations
+            return String.class.isAssignableFrom(fieldClass) ||
+                    (Number.class.isAssignableFrom(fieldClass) &&
+                            !Float.class.isAssignableFrom(fieldClass) && !Double.class.isAssignableFrom(fieldClass));
+        } catch (ClassNotFoundException ignore) {
+            return false;
+        }
     }
 
 }

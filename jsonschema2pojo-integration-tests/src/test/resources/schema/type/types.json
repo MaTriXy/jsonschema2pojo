@@ -44,7 +44,7 @@
         },
         "reusedClasspathType" : {
             "type" : "object",
-            "javaType" : "java.util.Locale"
+            "existingJavaType" : "java.util.Locale"
         },
         "reusedGeneratedType" : {
             "type" : "object",
@@ -52,28 +52,38 @@
         },
         "primitiveJavaType" : {
             "type" : "object",
-            "javaType" : "long"
+            "existingJavaType" : "long"
         },
         "integerWithJavaType" : {
           "type" : "integer",
-          "javaType" : "java.math.BigDecimal"
+          "existingJavaType" : "java.math.BigDecimal"
         },
         "numberWithJavaType" : {
           "type" : "number",
-          "javaType" : "java.util.UUID"
+          "existingJavaType" : "java.util.UUID"
         },
         "stringWithJavaType" : {
           "type" : "string",
-          "javaType" : "java.lang.Boolean"
+          "existingJavaType" : "java.lang.Boolean"
+        },
+        "enumWithJavaType" : {
+          "type" : "string",
+          "enum" : ["a", "b", "c"],
+          "existingJavaType" : "java.lang.Boolean"
+        },
+        "enumWithUnqualifiedJavaType" : {
+          "type" : "string",
+          "enum" : ["a", "b", "c"],
+          "javaType" : "Bar"
         },
         "booleanWithJavaType" : {
           "type" : "boolean",
-          "javaType" : "long"
+          "existingJavaType" : "long"
         },
         "dateWithJavaType" : {
           "type" : "string",
           "format" : "date-time",
-          "javaType" : "int"
+          "existingJavaType" : "int"
         },
         "typeWithInterfaces" : {
             "type" : "object",

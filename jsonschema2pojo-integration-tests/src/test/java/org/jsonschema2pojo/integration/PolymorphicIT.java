@@ -1,5 +1,5 @@
 /**
- * Copyright © 2010-2014 Nokia
+ * Copyright © 2010-2020 Nokia
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,22 +31,20 @@
 
 package org.jsonschema2pojo.integration;
 
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import static org.junit.Assert.assertNotNull;
+import static org.jsonschema2pojo.integration.util.CodeGenerationHelper.*;
+import static org.junit.Assert.*;
 
 import org.jsonschema2pojo.integration.util.Jsonschema2PojoRule;
 import org.junit.Rule;
 import org.junit.Test;
 
-/**
- *
- * @author JAshe
- */
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+
 public class PolymorphicIT {
     @Rule public Jsonschema2PojoRule schemaRule = new Jsonschema2PojoRule();
     
     @Test
-    public void extendsWithPolymorphicDeserialization() throws ClassNotFoundException {
+    public void extendsWithPolymorphicDeserializationWithDefaultAnnotationStyle() throws ClassNotFoundException {
 
         ClassLoader resultsClassLoader = schemaRule.generateAndCompile("/schema/polymorphic/extendsSchema.json", "com.example");
 
@@ -54,6 +52,17 @@ public class PolymorphicIT {
         Class<?> supertype = subtype.getSuperclass();
 
         assertNotNull(supertype.getAnnotation(JsonTypeInfo.class));
+    }
 
+    @Test
+    public void extendsWithPolymorphicDeserializationWithJackson2() throws ClassNotFoundException {
+
+        ClassLoader resultsClassLoader = schemaRule.generateAndCompile("/schema/polymorphic/extendsSchema.json", "com.example",
+                                                                       config("annotationStyle", "JACKSON2"));
+
+        Class<?> subtype = resultsClassLoader.loadClass("com.example.ExtendsSchema");
+        Class<?> supertype = subtype.getSuperclass();
+
+        assertNotNull(supertype.getAnnotation(JsonTypeInfo.class));
     }
 }

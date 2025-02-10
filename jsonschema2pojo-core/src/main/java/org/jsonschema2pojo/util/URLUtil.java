@@ -1,5 +1,5 @@
 /**
- * Copyright ¬© 2010-2014 Nokia
+ * Copyright © 2010-2020 Nokia
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,14 +16,14 @@
 
 package org.jsonschema2pojo.util;
 
-import org.apache.commons.lang.StringUtils;
-import org.jsonschema2pojo.URLProtocol;
-
 import java.io.File;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+
+import org.apache.commons.lang.StringUtils;
+import org.jsonschema2pojo.URLProtocol;
 
 public class URLUtil {
 

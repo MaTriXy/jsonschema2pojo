@@ -1,5 +1,5 @@
 /**
- * Copyright ¬© 2010-2014 Nokia
+ * Copyright © 2010-2020 Nokia
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,13 +16,14 @@
 
 package org.jsonschema2pojo.cli;
 
-import com.beust.jcommander.ParameterException;
-import com.beust.jcommander.converters.BaseConverter;
-import org.jsonschema2pojo.util.URLUtil;
+import static org.apache.commons.lang3.StringUtils.*;
 
 import java.net.URL;
 
-import static org.apache.commons.lang3.StringUtils.isBlank;
+import org.jsonschema2pojo.util.URLUtil;
+
+import com.beust.jcommander.ParameterException;
+import com.beust.jcommander.converters.BaseConverter;
 
 
 /**

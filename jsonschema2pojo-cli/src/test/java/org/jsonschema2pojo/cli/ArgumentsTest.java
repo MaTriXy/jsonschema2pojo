@@ -1,5 +1,5 @@
 /**
- * Copyright © 2010-2014 Nokia
+ * Copyright © 2010-2020 Nokia
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,9 +21,12 @@ import static org.hamcrest.Matchers.*;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.IOException;
 import java.io.PrintStream;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.util.Iterator;
 
+import org.jsonschema2pojo.InclusionLevel;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -50,8 +53,9 @@ public class ArgumentsTest {
     @Test
     public void parseRecognisesValidArguments() {
         ArgsForTest args = (ArgsForTest) new ArgsForTest().parse(new String[] {
-                "--source", "/home/source", "--target", "/home/target", "--package", "mypackage",
-                "--generate-builders", "--use-primitives", "--omit-hashcode-and-equals", "--omit-tostring", "--include-dynamic-accessors"
+                "--source", "/home/source", "--target", "/home/target", "--disable-getters", "--package", "mypackage",
+                "--generate-builders", "--use-primitives", "--omit-hashcode-and-equals", "--omit-tostring", "--include-dynamic-accessors",
+                "--include-dynamic-getters", "--include-dynamic-setters", "--include-dynamic-builders", "--inclusion-level", "ALWAYS"
         });
 
         assertThat(args.didExit(), is(false));
@@ -62,13 +66,19 @@ public class ArgumentsTest {
         assertThat(args.isUsePrimitives(), is(true));
         assertThat(args.isIncludeHashcodeAndEquals(), is(false));
         assertThat(args.isIncludeToString(), is(false));
+        assertThat(args.isIncludeGetters(), is(false));
+        assertThat(args.isIncludeSetters(), is(true));
         assertThat(args.isIncludeDynamicAccessors(), is(true));
+        assertThat(args.isIncludeDynamicGetters(), is(true));
+        assertThat(args.isIncludeDynamicSetters(), is(true));
+        assertThat(args.isIncludeDynamicBuilders(), is(true));
+        assertThat(args.getInclusionLevel(), is(InclusionLevel.ALWAYS));
     }
 
     @Test
     public void parseRecognisesShorthandArguments() {
         ArgsForTest args = (ArgsForTest) new ArgsForTest().parse(new String[] {
-                "-s", "/home/source", "-t", "/home/target", "-p", "mypackage", "-b", "-P", "-E", "-S", "-ida"
+                "-s", "/home/source", "-t", "/home/target", "-p", "mypackage", "-b", "-P", "-E", "-S", "-ida", "-idg", "-ids", "-idb", "-il", "ALWAYS"
         });
 
         assertThat(args.didExit(), is(false));
@@ -80,6 +90,10 @@ public class ArgumentsTest {
         assertThat(args.isIncludeHashcodeAndEquals(), is(false));
         assertThat(args.isIncludeToString(), is(false));
         assertThat(args.isIncludeDynamicAccessors(), is(true));
+        assertThat(args.isIncludeDynamicGetters(), is(true));
+        assertThat(args.isIncludeDynamicSetters(), is(true));
+        assertThat(args.isIncludeDynamicBuilders(), is(true));
+        assertThat(args.getInclusionLevel(), is(InclusionLevel.ALWAYS));
     }
 
     @Test
@@ -105,25 +119,78 @@ public class ArgumentsTest {
         assertThat(args.isUsePrimitives(), is(false));
         assertThat(args.isIncludeHashcodeAndEquals(), is(true));
         assertThat(args.isIncludeToString(), is(true));
+        assertThat(args.isIncludeGetters(), is(true));
+        assertThat(args.isIncludeSetters(), is(true));
         assertThat(args.isIncludeDynamicAccessors(), is(false));
+        assertThat(args.isIncludeDynamicGetters(), is(false));
+        assertThat(args.isIncludeDynamicSetters(), is(false));
+        assertThat(args.isIncludeDynamicBuilders(), is(false));
     }
 
     @Test
-    public void missingArgsCausesHelp() throws IOException {
+    public void missingArgsCausesHelp() {
         ArgsForTest args = (ArgsForTest) new ArgsForTest().parse(new String[] {});
 
         assertThat(args.status, is(1));
-        assertThat(new String(systemErrCapture.toByteArray(), "UTF-8"), is(containsString("--target")));
-        assertThat(new String(systemErrCapture.toByteArray(), "UTF-8"), is(containsString("--source")));
-        assertThat(new String(systemOutCapture.toByteArray(), "UTF-8"), is(containsString("Usage: jsonschema2pojo")));
+        assertThat(new String(systemErrCapture.toByteArray(), StandardCharsets.UTF_8), is(containsString("--target")));
+        assertThat(new String(systemErrCapture.toByteArray(), StandardCharsets.UTF_8), is(containsString("--source")));
+        assertThat(new String(systemOutCapture.toByteArray(), StandardCharsets.UTF_8), is(containsString("Usage: jsonschema2pojo")));
     }
 
     @Test
-    public void requestingHelpCausesHelp() throws IOException {
+    public void requestingHelpCausesHelp() {
         ArgsForTest args = (ArgsForTest) new ArgsForTest().parse(new String[] { "--help" });
 
         assertThat(args.status, is(notNullValue()));
-        assertThat(new String(systemOutCapture.toByteArray(), "UTF-8"), is(containsString("Usage: jsonschema2pojo")));
+        assertThat(new String(systemOutCapture.toByteArray(), StandardCharsets.UTF_8), is(containsString("Usage: jsonschema2pojo")));
+    }
+
+    @Test
+    public void requestingVersionCausesVersion() {
+        ArgsForTest args = (ArgsForTest) new ArgsForTest().parse(new String[] { "--version" });
+
+        assertThat(args.didExit(), is(true));
+        assertThat(new String(systemOutCapture.toByteArray(), StandardCharsets.UTF_8).matches("(?s)jsonschema2pojo version \\d.*"), is(true));
+    }
+
+    @Test
+    public void parseRecognisesSourceWithMultipleValues() {
+        ArgsForTest args = (ArgsForTest) new ArgsForTest().parse(new String[] {
+                "-s", "/home/source", "/home/second_source", "-t", "/home/target"
+        });
+
+        assertThat(args.didExit(), is(false));
+        final Iterator<URL> sources = args.getSource();
+        assertThat(sources.next().getFile(), endsWith("/home/source"));
+        assertThat(sources.next().getFile(), endsWith("/home/second_source"));
+        assertThat(sources.hasNext(), is(false));
+    }
+
+    @Test
+    public void parseRecognisesMultipleSources() {
+        ArgsForTest args = (ArgsForTest) new ArgsForTest().parse(new String[] {
+                "-s", "/home/source", "-s", "/home/second_source", "-t", "/home/target"
+        });
+
+        assertThat(args.didExit(), is(false));
+        final Iterator<URL> sources = args.getSource();
+        assertThat(sources.next().getFile(), endsWith("/home/source"));
+        assertThat(sources.next().getFile(), endsWith("/home/second_source"));
+        assertThat(sources.hasNext(), is(false));
+    }
+
+    @Test
+    public void parseRecognisesMultipleSourcesWithMultipleValues() {
+        ArgsForTest args = (ArgsForTest) new ArgsForTest().parse(new String[] {
+                "-s", "/home/source", "/home/second_source", "-s", "/home/third_source", "-t", "/home/target"
+        });
+
+        assertThat(args.didExit(), is(false));
+        final Iterator<URL> sources = args.getSource();
+        assertThat(sources.next().getFile(), endsWith("/home/source"));
+        assertThat(sources.next().getFile(), endsWith("/home/second_source"));
+        assertThat(sources.next().getFile(), endsWith("/home/third_source"));
+        assertThat(sources.hasNext(), is(false));
     }
 
     private File theFile(String path) {

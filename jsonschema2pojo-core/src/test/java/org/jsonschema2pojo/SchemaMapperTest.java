@@ -1,5 +1,5 @@
 /**
- * Copyright © 2010-2014 Nokia
+ * Copyright © 2010-2020 Nokia
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,14 +18,12 @@ package org.jsonschema2pojo;
 
 import static org.hamcrest.MatcherAssert.*;
 import static org.hamcrest.Matchers.*;
-import static org.mockito.Matchers.*;
 import static org.mockito.Mockito.*;
 
-import java.io.File;
 import java.io.IOException;
 import java.net.URL;
-import java.util.Scanner;
 
+import org.apache.commons.io.IOUtils;
 import org.jsonschema2pojo.rules.RuleFactory;
 import org.jsonschema2pojo.rules.SchemaRule;
 import org.junit.Test;
@@ -42,7 +40,7 @@ import com.sun.codemodel.JPackage;
 public class SchemaMapperTest {
 
     @Test
-    public void generateReadsSchemaAsObject() throws IOException {
+    public void generateReadsSchemaAsObject() {
 
         final SchemaRule mockSchemaRule = mock(SchemaRule.class);
 
@@ -57,7 +55,7 @@ public class SchemaMapperTest {
         ArgumentCaptor<JPackage> capturePackage = ArgumentCaptor.forClass(JPackage.class);
         ArgumentCaptor<JsonNode> captureNode = ArgumentCaptor.forClass(JsonNode.class);
 
-        verify(mockSchemaRule).apply(eq("Address"), captureNode.capture(), capturePackage.capture(), Mockito.isA(Schema.class));
+        verify(mockSchemaRule).apply(eq("Address"), captureNode.capture(), eq(null), capturePackage.capture(), Mockito.isA(Schema.class));
 
         assertThat(capturePackage.getValue().name(), is("com.example.package"));
         assertThat(captureNode.getValue(), is(notNullValue()));
@@ -65,7 +63,7 @@ public class SchemaMapperTest {
     }
 
     @Test
-    public void generateCreatesSchemaFromExampleJsonWhenInJsonMode() throws IOException {
+    public void generateCreatesSchemaFromExampleJsonWhenInJsonMode() {
 
         URL schemaContent = this.getClass().getResource("/schema/address.json");
 
@@ -87,7 +85,7 @@ public class SchemaMapperTest {
 
         ArgumentCaptor<JPackage> capturePackage = ArgumentCaptor.forClass(JPackage.class);
 
-        verify(mockSchemaRule).apply(eq("Address"), eq(schemaNode), capturePackage.capture(), Mockito.isA(Schema.class));
+        verify(mockSchemaRule).apply(eq("Address"), eq(schemaNode), eq(null), capturePackage.capture(), Mockito.isA(Schema.class));
 
         assertThat(capturePackage.getValue().name(), is("com.example.package"));
 
@@ -95,9 +93,9 @@ public class SchemaMapperTest {
 
     @Test
     public void generateCreatesSchemaFromExampleJSONAsStringInput() throws IOException {
-       
-       String jsonContent = new Scanner(this.getClass().getResourceAsStream("/example-json/user.json")).useDelimiter("\\Z").next();
-       
+
+        String jsonContent = IOUtils.toString(this.getClass().getResourceAsStream("/example-json/user.json"));
+
         ObjectNode schemaNode = JsonNodeFactory.instance.objectNode();
 
         final SchemaRule mockSchemaRule = mock(SchemaRule.class);
@@ -116,15 +114,15 @@ public class SchemaMapperTest {
 
         ArgumentCaptor<JPackage> capturePackage = ArgumentCaptor.forClass(JPackage.class);
 
-        verify(mockSchemaRule).apply(eq("User"), eq(schemaNode), capturePackage.capture(), Mockito.isA(Schema.class));
+        verify(mockSchemaRule).apply(eq("User"), eq(schemaNode), eq(null), capturePackage.capture(), Mockito.isA(Schema.class));
 
         assertThat(capturePackage.getValue().name(), is("com.example.package"));
-   }
-    
+    }
+
     @Test
     public void generateCreatesSchemaFromSchemaAsStringInput() throws IOException {
 
-       String schemaContent = new Scanner(this.getClass().getResourceAsStream("/schema/address.json")).useDelimiter("\\Z").next();
+        String schemaContent = IOUtils.toString(this.getClass().getResourceAsStream("/schema/address.json"));
 
         final SchemaRule mockSchemaRule = mock(SchemaRule.class);
 
@@ -137,10 +135,10 @@ public class SchemaMapperTest {
         ArgumentCaptor<JPackage> capturePackage = ArgumentCaptor.forClass(JPackage.class);
         ArgumentCaptor<JsonNode> captureNode = ArgumentCaptor.forClass(JsonNode.class);
 
-        verify(mockSchemaRule).apply(eq("Address"), captureNode.capture(), capturePackage.capture(), Mockito.isA(Schema.class));
+        verify(mockSchemaRule).apply(eq("Address"), captureNode.capture(), eq(null), capturePackage.capture(), Mockito.isA(Schema.class));
 
         assertThat(capturePackage.getValue().name(), is("com.example.package"));
         assertThat(captureNode.getValue(), is(notNullValue()));
-        
-   }
+
+    }
 }

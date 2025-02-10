@@ -15,28 +15,37 @@
  */
 package org.jsonschema2pojo.gradle
 
-import org.gradle.tooling.BuildLauncher
-import org.gradle.tooling.GradleConnector
-import org.gradle.tooling.ProjectConnection
+import static org.hamcrest.MatcherAssert.*;
+
+import java.lang.reflect.Field
+import java.nio.charset.StandardCharsets
+
+import org.apache.commons.io.FileUtils
 import org.junit.Test
 
 class JsonSchemaPluginSpec {
 
   @Test
-  void java() {
-    build("example/java");
+  void documentationIncludesAllProperties() {
+    String documentation = FileUtils.readFileToString(new File("README.md"), StandardCharsets.UTF_8);
+
+    Set<String> ignoredProperties = new HashSet<String>() {{
+        add("sourceFiles");
+        add("\$staticClassInfo\$");
+        add("\$staticClassInfo");
+        add("__\$stMC");
+        add("metaClass");
+        add("\$callSiteArray");
+    }}
+
+    List<String> missingProperties = new ArrayList<String>()
+    for (Field f : JsonSchemaExtension.class.getDeclaredFields()) {
+      if (!ignoredProperties.contains(f.getName()) && !documentation.contains("  " + f.getName() + " ")) {
+        missingProperties.add(f.getName());
+      }
+    }
+
+    assertThat(missingProperties.toString(), missingProperties.isEmpty())
   }
 
-  void build(String projectDir) {
-    GradleConnector connector = GradleConnector.newConnector()
-    connector.forProjectDirectory(new File(projectDir))
-    ProjectConnection connection = connector.connect()
-    try {
-      BuildLauncher launcher = connection.newBuild()
-      launcher.forTasks("build")
-      launcher.run()
-    } finally {
-      connection.close()
-    }
-  }
 }

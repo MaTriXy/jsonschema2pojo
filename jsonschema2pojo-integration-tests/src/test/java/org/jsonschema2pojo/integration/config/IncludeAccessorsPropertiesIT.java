@@ -1,5 +1,5 @@
 /**
- * Copyright © 2010-2014 Nokia
+ * Copyright © 2010-2020 Nokia
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,14 +17,14 @@
 package org.jsonschema2pojo.integration.config;
 
 import static org.hamcrest.Matchers.*;
-import static org.jsonschema2pojo.integration.util.CodeGenerationHelper.config;
+import static org.jsonschema2pojo.integration.util.CodeGenerationHelper.*;
 import static org.junit.Assert.*;
-import static org.fest.util.Lists.newArrayList;
 
 import java.lang.reflect.Member;
 import java.lang.reflect.Modifier;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -36,8 +36,8 @@ import org.jsonschema2pojo.integration.util.Jsonschema2PojoRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized.Parameters;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * Checks general properties of includeAccessors and different configurations.
@@ -76,7 +76,7 @@ public class IncludeAccessorsPropertiesIT {
     }
 
     @Test
-    public void noGettersOrSettersWhenFalse() throws ClassNotFoundException, SecurityException, NoSuchMethodException, NoSuchFieldException {
+    public void noGettersOrSettersWhenFalse() throws ClassNotFoundException, SecurityException {
         ClassLoader resultsClassLoader = schemaRule.generateAndCompile(path, PACKAGE, includeAccessorsFalse);
         Class generatedType = resultsClassLoader.loadClass(typeName);
 
@@ -84,7 +84,7 @@ public class IncludeAccessorsPropertiesIT {
     }
 
     @Test
-    public void hasGettersOrSettersWhenTrue() throws ClassNotFoundException, SecurityException, NoSuchMethodException, NoSuchFieldException {
+    public void hasGettersOrSettersWhenTrue() throws ClassNotFoundException, SecurityException {
         ClassLoader resultsClassLoader = schemaRule.generateAndCompile(path, PACKAGE, includeAccessorsTrue);
         Class generatedType = resultsClassLoader.loadClass(typeName);
 
@@ -92,7 +92,7 @@ public class IncludeAccessorsPropertiesIT {
     }
 
     @Test
-    public void onlyHasPublicInstanceFieldsWhenFalse() throws ClassNotFoundException, SecurityException, NoSuchMethodException, NoSuchFieldException {
+    public void onlyHasPublicInstanceFieldsWhenFalse() throws ClassNotFoundException, SecurityException {
         ClassLoader resultsClassLoader = schemaRule.generateAndCompile(path, PACKAGE, includeAccessorsFalse);
         Class generatedType = resultsClassLoader.loadClass(typeName);
 
@@ -100,7 +100,7 @@ public class IncludeAccessorsPropertiesIT {
     }
 
     @Test
-    public void noPublicInstanceFieldsWhenTrue() throws ClassNotFoundException, SecurityException, NoSuchMethodException, NoSuchFieldException {
+    public void noPublicInstanceFieldsWhenTrue() throws ClassNotFoundException, SecurityException {
         ClassLoader resultsClassLoader = schemaRule.generateAndCompile(path, PACKAGE, includeAccessorsTrue);
         Class generatedType = resultsClassLoader.loadClass(typeName);
 
@@ -108,8 +108,9 @@ public class IncludeAccessorsPropertiesIT {
     }
 
     private static Map<String, Object> configWithIncludeAccessors(Map<String, Object> template, boolean includeAccessors) {
-        Map<String, Object> config = new HashMap<String, Object>(template);
-        config.put("includeAccessors", includeAccessors);
+        Map<String, Object> config = new HashMap<>(template);
+        config.put("includeGetters", includeAccessors);
+        config.put("includeSetters", includeAccessors);
         return config;
     }
 
@@ -166,11 +167,11 @@ public class IncludeAccessorsPropertiesIT {
     }
 
     private static <M extends Member> Matcher<M> methodWhitelist() {
-        return nameMatches(isIn(newArrayList("setAdditionalProperty", "getAdditionalProperties")));
+        return nameMatches(isIn(Arrays.asList("setAdditionalProperty", "getAdditionalProperties")));
     }
 
     private static <M extends Member> Matcher<M> fieldWhitelist() {
-        return nameMatches(isIn(newArrayList("additionalProperties")));
+        return nameMatches(isIn(Collections.singletonList("additionalProperties")));
     }
 
     private static <M extends Member> Matcher<M> fieldGetterOrSetter() {

@@ -1,5 +1,5 @@
 /**
- * Copyright © 2010-2014 Nokia
+ * Copyright © 2010-2020 Nokia
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,17 +21,20 @@ import static org.junit.Assert.*;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
 
 import org.jsonschema2pojo.integration.util.Jsonschema2PojoRule;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 
-import com.thoughtworks.qdox.JavaDocBuilder;
+import com.thoughtworks.qdox.JavaProjectBuilder;
 import com.thoughtworks.qdox.model.JavaClass;
 import com.thoughtworks.qdox.model.JavaField;
 import com.thoughtworks.qdox.model.JavaMethod;
-import com.thoughtworks.qdox.model.Type;
+import com.thoughtworks.qdox.model.JavaType;
+import com.thoughtworks.qdox.model.impl.DefaultJavaClass;
 
 public class RequiredIT {
     @ClassRule public static Jsonschema2PojoRule classSchemaRule = new Jsonschema2PojoRule();
@@ -39,19 +42,19 @@ public class RequiredIT {
     private static JavaClass classWithRequired;
 
     @BeforeClass
-    public static void generateClasses() throws ClassNotFoundException, IOException {
+    public static void generateClasses() throws IOException {
 
         classSchemaRule.generateAndCompile("/schema/required/required.json", "com.example");
         File generatedJavaFile = classSchemaRule.generated("com/example/Required.java");
 
-        JavaDocBuilder javaDocBuilder = new JavaDocBuilder();
+        JavaProjectBuilder javaDocBuilder = new JavaProjectBuilder();
         javaDocBuilder.addSource(generatedJavaFile);
 
         classWithRequired = javaDocBuilder.getClassByName("com.example.Required");
     }
 
     @Test
-    public void requiredAppearsInFieldJavadoc() throws IOException {
+    public void requiredAppearsInFieldJavadoc() {
 
         JavaField javaField = classWithRequired.getFieldByName("requiredProperty");
         String javaDocComment = javaField.getComment();
@@ -61,9 +64,9 @@ public class RequiredIT {
     }
 
     @Test
-    public void requiredAppearsInGetterJavadoc() throws IOException {
+    public void requiredAppearsInGetterJavadoc() {
 
-        JavaMethod javaMethod = classWithRequired.getMethodBySignature("getRequiredProperty", new Type[] {});
+        JavaMethod javaMethod = classWithRequired.getMethodBySignature("getRequiredProperty", Collections.emptyList());
         String javaDocComment = javaMethod.getComment();
 
         assertThat(javaDocComment, containsString("(Required)"));
@@ -71,9 +74,10 @@ public class RequiredIT {
     }
 
     @Test
-    public void requiredAppearsInSetterJavadoc() throws IOException {
+    public void requiredAppearsInSetterJavadoc() {
 
-        JavaMethod javaMethod = classWithRequired.getMethodBySignature("setRequiredProperty", new Type[] { new Type("java.lang.String") });
+        final List<JavaType> parameterTypes = Collections.singletonList(new DefaultJavaClass("java.lang.String"));
+        JavaMethod javaMethod = classWithRequired.getMethodBySignature("setRequiredProperty", parameterTypes);
         String javaDocComment = javaMethod.getComment();
 
         assertThat(javaDocComment, containsString("(Required)"));
@@ -81,7 +85,7 @@ public class RequiredIT {
     }
 
     @Test
-    public void nonRequiredFiedHasNoRequiredText() throws IOException {
+    public void nonRequiredFieldHasNoRequiredText() {
 
         JavaField javaField = classWithRequired.getFieldByName("nonRequiredProperty");
         String javaDocComment = javaField.getComment();
@@ -91,7 +95,7 @@ public class RequiredIT {
     }
 
     @Test
-    public void notRequiredIsTheDefault() throws IOException {
+    public void notRequiredIsTheDefault() {
 
         JavaField javaField = classWithRequired.getFieldByName("defaultNotRequiredProperty");
         String javaDocComment = javaField.getComment();

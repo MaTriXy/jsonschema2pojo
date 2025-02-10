@@ -1,5 +1,5 @@
 /**
- * Copyright © 2010-2014 Nokia
+ * Copyright © 2010-2020 Nokia
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,14 +18,12 @@ package org.jsonschema2pojo.rules;
 
 import static org.hamcrest.MatcherAssert.*;
 import static org.hamcrest.Matchers.*;
-import static org.mockito.Matchers.*;
 import static org.mockito.Mockito.*;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
 
 import org.jsonschema2pojo.GenerationConfig;
-import org.jsonschema2pojo.Schema;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -41,10 +39,10 @@ import com.sun.codemodel.JType;
 
 public class TypeRuleTest {
 
-    private GenerationConfig config = mock(GenerationConfig.class);
-    private RuleFactory ruleFactory = mock(RuleFactory.class);
+    private final GenerationConfig config = mock(GenerationConfig.class);
+    private final RuleFactory ruleFactory = mock(RuleFactory.class);
 
-    private TypeRule rule = new TypeRule(ruleFactory);
+    private final TypeRule rule = new TypeRule(ruleFactory);
 
     @Before
     public void wireUpConfig() {
@@ -59,7 +57,7 @@ public class TypeRuleTest {
         ObjectNode objectNode = new ObjectMapper().createObjectNode();
         objectNode.put("type", "string");
 
-        JType result = rule.apply("fooBar", objectNode, jpackage, null);
+        JType result = rule.apply("fooBar", objectNode, null, jpackage, null);
 
         assertThat(result.fullName(), is(String.class.getName()));
     }
@@ -77,10 +75,10 @@ public class TypeRuleTest {
 
         JType mockDateType = mock(JType.class);
         FormatRule mockFormatRule = mock(FormatRule.class);
-        when(mockFormatRule.apply(eq("fooBar"), eq(formatNode), Mockito.isA(JType.class), isNull(Schema.class))).thenReturn(mockDateType);
+        when(mockFormatRule.apply(eq("fooBar"), eq(formatNode), any(), Mockito.isA(JType.class), isNull())).thenReturn(mockDateType);
         when(ruleFactory.getFormatRule()).thenReturn(mockFormatRule);
 
-        JType result = rule.apply("fooBar", objectNode, jpackage, null);
+        JType result = rule.apply("fooBar", objectNode, null, jpackage, null);
 
         assertThat(result, equalTo(mockDateType));
     }
@@ -93,7 +91,7 @@ public class TypeRuleTest {
         ObjectNode objectNode = new ObjectMapper().createObjectNode();
         objectNode.put("type", "integer");
 
-        JType result = rule.apply("fooBar", objectNode, jpackage, null);
+        JType result = rule.apply("fooBar", objectNode, null, jpackage, null);
 
         assertThat(result.fullName(), is(Integer.class.getName()));
     }
@@ -108,7 +106,7 @@ public class TypeRuleTest {
 
         when(config.isUsePrimitives()).thenReturn(true);
 
-        JType result = rule.apply("fooBar", objectNode, jpackage, null);
+        JType result = rule.apply("fooBar", objectNode, null, jpackage, null);
 
         assertThat(result.fullName(), is("int"));
     }
@@ -120,11 +118,11 @@ public class TypeRuleTest {
 
         ObjectNode objectNode = new ObjectMapper().createObjectNode();
         objectNode.put("type", "integer");
-        objectNode.put("javaType", "int");
+        objectNode.put("existingJavaType", "int");
 
         when(config.isUsePrimitives()).thenReturn(false);
 
-        JType result = rule.apply("fooBar", objectNode, jpackage, null);
+        JType result = rule.apply("fooBar", objectNode, null, jpackage, null);
 
         assertThat(result.fullName(), is("int"));
     }
@@ -139,7 +137,7 @@ public class TypeRuleTest {
 
         when(config.isUseBigIntegers()).thenReturn(true);
 
-        JType result = rule.apply("fooBar", objectNode, jpackage, null);
+        JType result = rule.apply("fooBar", objectNode, null, jpackage, null);
 
         assertThat(result.fullName(), is(BigInteger.class.getName()));
     }
@@ -156,7 +154,7 @@ public class TypeRuleTest {
         when(config.isUseBigIntegers()).thenReturn(true);
         when(config.isUseLongIntegers()).thenReturn(true);
 
-        JType result = rule.apply("fooBar", objectNode, jpackage, null);
+        JType result = rule.apply("fooBar", objectNode, null, jpackage, null);
 
         assertThat(result.fullName(), is(BigInteger.class.getName()));
     }
@@ -171,7 +169,7 @@ public class TypeRuleTest {
 
         when(config.isUseBigDecimals()).thenReturn(true);
 
-        JType result = rule.apply("fooBar", objectNode, jpackage, null);
+        JType result = rule.apply("fooBar", objectNode, null, jpackage, null);
 
         assertThat(result.fullName(), is(BigDecimal.class.getName()));
     }
@@ -188,7 +186,7 @@ public class TypeRuleTest {
         when(config.isUseDoubleNumbers()).thenReturn(true);
         when(config.isUseBigDecimals()).thenReturn(true);
 
-        JType result = rule.apply("fooBar", objectNode, jpackage, null);
+        JType result = rule.apply("fooBar", objectNode, null, jpackage, null);
 
         assertThat(result.fullName(), is(BigDecimal.class.getName()));
     }
@@ -201,11 +199,11 @@ public class TypeRuleTest {
 
         ObjectNode objectNode = new ObjectMapper().createObjectNode();
         objectNode.put("type", "integer");
-        objectNode.put("javaType", "java.lang.Integer");
+        objectNode.put("existingJavaType", "java.lang.Integer");
 
         when(config.isUsePrimitives()).thenReturn(true);
 
-        JType result = rule.apply("fooBar", objectNode, jpackage, null);
+        JType result = rule.apply("fooBar", objectNode, null, jpackage, null);
 
         assertThat(result.fullName(), is("java.lang.Integer"));
     }
@@ -217,11 +215,11 @@ public class TypeRuleTest {
 
         ObjectNode objectNode = new ObjectMapper().createObjectNode();
         objectNode.put("type", "integer");
-        objectNode.put("javaType", "long");
+        objectNode.put("existingJavaType", "long");
 
         when(config.isUsePrimitives()).thenReturn(false);
 
-        JType result = rule.apply("fooBar", objectNode, jpackage, null);
+        JType result = rule.apply("fooBar", objectNode, null, jpackage, null);
 
         assertThat(result.fullName(), is("long"));
     }
@@ -233,11 +231,11 @@ public class TypeRuleTest {
 
         ObjectNode objectNode = new ObjectMapper().createObjectNode();
         objectNode.put("type", "integer");
-        objectNode.put("javaType", "java.lang.Long");
+        objectNode.put("existingJavaType", "java.lang.Long");
 
         when(config.isUsePrimitives()).thenReturn(true);
 
-        JType result = rule.apply("fooBar", objectNode, jpackage, null);
+        JType result = rule.apply("fooBar", objectNode, null, jpackage, null);
 
         assertThat(result.fullName(), is("java.lang.Long"));
     }
@@ -253,7 +251,7 @@ public class TypeRuleTest {
 
         when(config.isUsePrimitives()).thenReturn(true);
 
-        JType result = rule.apply("fooBar", objectNode, jpackage, null);
+        JType result = rule.apply("fooBar", objectNode, null, jpackage, null);
 
         assertThat(result.fullName(), is("long"));
     }
@@ -269,7 +267,7 @@ public class TypeRuleTest {
 
         when(config.isUsePrimitives()).thenReturn(false);
 
-        JType result = rule.apply("fooBar", objectNode, jpackage, null);
+        JType result = rule.apply("fooBar", objectNode, null, jpackage, null);
 
         assertThat(result.fullName(), is(Long.class.getName()));
     }
@@ -285,7 +283,7 @@ public class TypeRuleTest {
 
         when(config.isUsePrimitives()).thenReturn(true);
 
-        JType result = rule.apply("fooBar", objectNode, jpackage, null);
+        JType result = rule.apply("fooBar", objectNode, null, jpackage, null);
 
         assertThat(result.fullName(), is("long"));
     }
@@ -301,7 +299,7 @@ public class TypeRuleTest {
 
         when(config.isUsePrimitives()).thenReturn(false);
 
-        JType result = rule.apply("fooBar", objectNode, jpackage, null);
+        JType result = rule.apply("fooBar", objectNode, null, jpackage, null);
 
         assertThat(result.fullName(), is(Long.class.getName()));
     }
@@ -317,7 +315,7 @@ public class TypeRuleTest {
 
         when(config.isUsePrimitives()).thenReturn(true);
 
-        JType result = rule.apply("fooBar", objectNode, jpackage, null);
+        JType result = rule.apply("fooBar", objectNode, null, jpackage, null);
 
         assertThat(result.fullName(), is("long"));
     }
@@ -333,7 +331,7 @@ public class TypeRuleTest {
 
         when(config.isUsePrimitives()).thenReturn(false);
 
-        JType result = rule.apply("fooBar", objectNode, jpackage, null);
+        JType result = rule.apply("fooBar", objectNode, null, jpackage, null);
 
         assertThat(result.fullName(), is(Long.class.getName()));
     }
@@ -349,7 +347,7 @@ public class TypeRuleTest {
 
         when(config.isUsePrimitives()).thenReturn(true);
 
-        JType result = rule.apply("fooBar", objectNode, jpackage, null);
+        JType result = rule.apply("fooBar", objectNode, null, jpackage, null);
 
         assertThat(result.fullName(), is("long"));
     }
@@ -365,7 +363,7 @@ public class TypeRuleTest {
 
         when(config.isUsePrimitives()).thenReturn(false);
 
-        JType result = rule.apply("fooBar", objectNode, jpackage, null);
+        JType result = rule.apply("fooBar", objectNode, null, jpackage, null);
 
         assertThat(result.fullName(), is(Long.class.getName()));
     }
@@ -377,9 +375,9 @@ public class TypeRuleTest {
 
         ObjectNode objectNode = new ObjectMapper().createObjectNode();
         objectNode.put("type", "integer");
-        objectNode.put("javaType", "java.math.BigInteger");
+        objectNode.put("existingJavaType", "java.math.BigInteger");
 
-        JType result = rule.apply("fooBar", objectNode, jpackage, null);
+        JType result = rule.apply("fooBar", objectNode, null, jpackage, null);
 
         assertThat(result.fullName(), is("java.math.BigInteger"));
     }
@@ -394,7 +392,7 @@ public class TypeRuleTest {
 
         when(config.isUseDoubleNumbers()).thenReturn(true);
 
-        JType result = rule.apply("fooBar", objectNode, jpackage, null);
+        JType result = rule.apply("fooBar", objectNode, null, jpackage, null);
 
         assertThat(result.fullName(), is(Double.class.getName()));
     }
@@ -410,7 +408,7 @@ public class TypeRuleTest {
         when(config.isUsePrimitives()).thenReturn(true);
         when(config.isUseDoubleNumbers()).thenReturn(true);
 
-        JType result = rule.apply("fooBar", objectNode, jpackage, null);
+        JType result = rule.apply("fooBar", objectNode, null, jpackage, null);
 
         assertThat(result.fullName(), is("double"));
     }
@@ -422,11 +420,11 @@ public class TypeRuleTest {
 
         ObjectNode objectNode = new ObjectMapper().createObjectNode();
         objectNode.put("type", "number");
-        objectNode.put("javaType", "float");
+        objectNode.put("existingJavaType", "float");
 
         when(config.isUsePrimitives()).thenReturn(false);
 
-        JType result = rule.apply("fooBar", objectNode, jpackage, null);
+        JType result = rule.apply("fooBar", objectNode, null, jpackage, null);
 
         assertThat(result.fullName(), is("float"));
     }
@@ -438,11 +436,11 @@ public class TypeRuleTest {
 
         ObjectNode objectNode = new ObjectMapper().createObjectNode();
         objectNode.put("type", "number");
-        objectNode.put("javaType", "java.lang.Float");
+        objectNode.put("existingJavaType", "java.lang.Float");
 
         when(config.isUsePrimitives()).thenReturn(true);
 
-        JType result = rule.apply("fooBar", objectNode, jpackage, null);
+        JType result = rule.apply("fooBar", objectNode, null, jpackage, null);
 
         assertThat(result.fullName(), is("java.lang.Float"));
     }
@@ -454,11 +452,11 @@ public class TypeRuleTest {
 
         ObjectNode objectNode = new ObjectMapper().createObjectNode();
         objectNode.put("type", "number");
-        objectNode.put("javaType", "double");
+        objectNode.put("existingJavaType", "double");
 
         when(config.isUsePrimitives()).thenReturn(false);
 
-        JType result = rule.apply("fooBar", objectNode, jpackage, null);
+        JType result = rule.apply("fooBar", objectNode, null, jpackage, null);
 
         assertThat(result.fullName(), is("double"));
     }
@@ -470,11 +468,11 @@ public class TypeRuleTest {
 
         ObjectNode objectNode = new ObjectMapper().createObjectNode();
         objectNode.put("type", "number");
-        objectNode.put("javaType", "java.lang.Double");
+        objectNode.put("existingJavaType", "java.lang.Double");
 
         when(config.isUsePrimitives()).thenReturn(true);
 
-        JType result = rule.apply("fooBar", objectNode, jpackage, null);
+        JType result = rule.apply("fooBar", objectNode, null, jpackage, null);
 
         assertThat(result.fullName(), is("java.lang.Double"));
     }
@@ -486,9 +484,9 @@ public class TypeRuleTest {
 
         ObjectNode objectNode = new ObjectMapper().createObjectNode();
         objectNode.put("type", "number");
-        objectNode.put("javaType", "java.math.BigDecimal");
+        objectNode.put("existingJavaType", "java.math.BigDecimal");
 
-        JType result = rule.apply("fooBar", objectNode, jpackage, null);
+        JType result = rule.apply("fooBar", objectNode, null, jpackage, null);
 
         assertThat(result.fullName(), is("java.math.BigDecimal"));
     }
@@ -501,7 +499,7 @@ public class TypeRuleTest {
         ObjectNode objectNode = new ObjectMapper().createObjectNode();
         objectNode.put("type", "boolean");
 
-        JType result = rule.apply("fooBar", objectNode, jpackage, null);
+        JType result = rule.apply("fooBar", objectNode, null, jpackage, null);
 
         assertThat(result.fullName(), is(Boolean.class.getName()));
     }
@@ -516,7 +514,7 @@ public class TypeRuleTest {
 
         when(config.isUsePrimitives()).thenReturn(true);
 
-        JType result = rule.apply("fooBar", objectNode, jpackage, null);
+        JType result = rule.apply("fooBar", objectNode, null, jpackage, null);
 
         assertThat(result.fullName(), is("boolean"));
     }
@@ -529,7 +527,7 @@ public class TypeRuleTest {
         ObjectNode objectNode = new ObjectMapper().createObjectNode();
         objectNode.put("type", "any");
 
-        JType result = rule.apply("fooBar", objectNode, jpackage, null);
+        JType result = rule.apply("fooBar", objectNode, null, jpackage, null);
 
         assertThat(result.fullName(), is(Object.class.getName()));
     }
@@ -542,7 +540,7 @@ public class TypeRuleTest {
         ObjectNode objectNode = new ObjectMapper().createObjectNode();
         objectNode.put("type", "null");
 
-        JType result = rule.apply("fooBar", objectNode, jpackage, null);
+        JType result = rule.apply("fooBar", objectNode, null, jpackage, null);
 
         assertThat(result.fullName(), is(Object.class.getName()));
     }
@@ -557,12 +555,12 @@ public class TypeRuleTest {
 
         JClass mockArrayType = mock(JClass.class);
         ArrayRule mockArrayRule = mock(ArrayRule.class);
-        when(mockArrayRule.apply("fooBar", objectNode, jpackage, null)).thenReturn(mockArrayType);
+        when(mockArrayRule.apply("fooBar", objectNode, null, jpackage, null)).thenReturn(mockArrayType);
         when(ruleFactory.getArrayRule()).thenReturn(mockArrayRule);
 
-        JType result = rule.apply("fooBar", objectNode, jpackage, null);
+        JType result = rule.apply("fooBar", objectNode, null, jpackage, null);
 
-        assertThat(result, is((JType) mockArrayType));
+        assertThat(result, is(mockArrayType));
     }
 
     @Test
@@ -575,12 +573,12 @@ public class TypeRuleTest {
 
         JDefinedClass mockObjectType = mock(JDefinedClass.class);
         ObjectRule mockObjectRule = mock(ObjectRule.class);
-        when(mockObjectRule.apply("fooBar", objectNode, jpackage, null)).thenReturn(mockObjectType);
+        when(mockObjectRule.apply("fooBar", objectNode, null, jpackage, null)).thenReturn(mockObjectType);
         when(ruleFactory.getObjectRule()).thenReturn(mockObjectRule);
 
-        JType result = rule.apply("fooBar", objectNode, jpackage, null);
+        JType result = rule.apply("fooBar", objectNode, null, jpackage, null);
 
-        assertThat(result, is((JType) mockObjectType));
+        assertThat(result, is(mockObjectType));
     }
 
     @Test
@@ -591,7 +589,7 @@ public class TypeRuleTest {
         ObjectNode objectNode = new ObjectMapper().createObjectNode();
         objectNode.put("type", "unknown");
 
-        JType result = rule.apply("fooBar", objectNode, jpackage, null);
+        JType result = rule.apply("fooBar", objectNode, null, jpackage, null);
 
         assertThat(result.fullName(), is(Object.class.getName()));
 
@@ -604,7 +602,7 @@ public class TypeRuleTest {
 
         ObjectNode objectNode = new ObjectMapper().createObjectNode();
 
-        JType result = rule.apply("fooBar", objectNode, jpackage, null);
+        JType result = rule.apply("fooBar", objectNode, null, jpackage, null);
 
         assertThat(result.fullName(), is(Object.class.getName()));
     }

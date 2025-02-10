@@ -1,5 +1,5 @@
 /**
- * Copyright © 2010-2014 Nokia
+ * Copyright © 2010-2020 Nokia
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,17 +24,18 @@ import static org.mockito.Mockito.*;
 import java.net.URI;
 import java.util.Collection;
 import java.util.Date;
-import java.util.regex.Pattern;
 import java.util.UUID;
+import java.util.regex.Pattern;
+
+import org.jsonschema2pojo.GenerationConfig;
+import org.jsonschema2pojo.NoopAnnotator;
+import org.jsonschema2pojo.SchemaStore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 import com.fasterxml.jackson.databind.node.TextNode;
-import org.jsonschema2pojo.GenerationConfig;
-import org.jsonschema2pojo.NoopAnnotator;
-import org.jsonschema2pojo.SchemaStore;
 import com.sun.codemodel.JCodeModel;
 import com.sun.codemodel.JType;
 
@@ -75,7 +76,7 @@ public class FormatRuleTest {
     public void applyGeneratesTypeFromFormatValue() {
         TextNode formatNode = TextNode.valueOf(formatValue);
 
-        JType result = rule.apply("fooBar", formatNode, new JCodeModel().ref(String.class), null);
+        JType result = rule.apply("fooBar", formatNode, null, new JCodeModel().ref(String.class), null);
 
         assertThat(result.fullName(), equalTo(expectedType.getName()));
     }
@@ -86,7 +87,7 @@ public class FormatRuleTest {
 
         JType baseType = new JCodeModel().ref(Long.class);
 
-        JType result = rule.apply("fooBar", formatNode, baseType, null);
+        JType result = rule.apply("fooBar", formatNode, null, baseType, null);
 
         assertThat(result, equalTo(baseType));
     }

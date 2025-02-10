@@ -1,5 +1,5 @@
 /**
- * Copyright © 2010-2014 Nokia
+ * Copyright © 2010-2020 Nokia
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
 package org.jsonschema2pojo.integration.config;
 
 import static org.hamcrest.Matchers.*;
-import static org.jsonschema2pojo.integration.util.CodeGenerationHelper.config;
+import static org.jsonschema2pojo.integration.util.CodeGenerationHelper.*;
 import static org.jsonschema2pojo.integration.util.FileSearchMatcher.*;
 import static org.jsonschema2pojo.integration.util.JsonAssert.*;
 import static org.junit.Assert.*;
@@ -43,7 +43,7 @@ public class GsonIT {
 
     @Test
     @SuppressWarnings({ "rawtypes", "unchecked" })
-    public void annotationStyleGsonProducesGsonAnnotations() throws ClassNotFoundException, SecurityException, NoSuchMethodException, NoSuchFieldException {
+    public void annotationStyleGsonProducesGsonAnnotations() throws ClassNotFoundException, SecurityException, NoSuchMethodException {
 
         Class generatedType = schemaRule.generateAndCompile("/json/examples/torrent.json", "com.example",
                 config("annotationStyle", "gson",
@@ -53,6 +53,8 @@ public class GsonIT {
 
         assertThat(schemaRule.getGenerateDir(), not(containsText("org.codehaus.jackson")));
         assertThat(schemaRule.getGenerateDir(), not(containsText("com.fasterxml.jackson")));
+        assertThat(schemaRule.getGenerateDir(), not(containsText("jakarta.json.bind.annotation")));
+        assertThat(schemaRule.getGenerateDir(), not(containsText("javax.json.bind.annotation")));
         assertThat(schemaRule.getGenerateDir(), containsText("com.google.gson"));
         assertThat(schemaRule.getGenerateDir(), containsText("@SerializedName"));
 
@@ -64,7 +66,7 @@ public class GsonIT {
     }
 
     @Test
-    public void annotationStyleGsonMakesTypesThatWorkWithGson() throws ClassNotFoundException, SecurityException, NoSuchMethodException, NoSuchFieldException, IOException {
+    public void annotationStyleGsonMakesTypesThatWorkWithGson() throws ClassNotFoundException, SecurityException, IOException {
 
         ClassLoader resultsClassLoader = schemaRule.generateAndCompile("/json/examples/", "com.example",
                 config("annotationStyle", "gson",

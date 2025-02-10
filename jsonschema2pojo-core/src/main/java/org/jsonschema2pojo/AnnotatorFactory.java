@@ -1,5 +1,5 @@
 /**
- * Copyright © 2010-2014 Nokia
+ * Copyright © 2010-2020 Nokia
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -46,8 +46,10 @@ public class AnnotatorFactory {
             case JACKSON:
             case JACKSON2:
                 return new Jackson2Annotator(generationConfig);
-            case JACKSON1:
-                return new Jackson1Annotator(generationConfig);
+            case JSONB1:
+                return new Jsonb1Annotator(generationConfig);
+            case JSONB2:
+                return new Jsonb2Annotator(generationConfig);
             case GSON:
                 return new GsonAnnotator(generationConfig);
             case MOSHI1:
@@ -80,9 +82,7 @@ public class AnnotatorFactory {
             } catch (NoSuchMethodException e) {
                 return clazz.newInstance();
             }
-        } catch (InvocationTargetException e) {
-            throw new IllegalArgumentException("Failed to create a custom annotator from the given class. An exception was thrown on trying to create a new instance.", e.getCause());
-        } catch (InstantiationException e) {
+        } catch (InvocationTargetException | InstantiationException e) {
             throw new IllegalArgumentException("Failed to create a custom annotator from the given class. An exception was thrown on trying to create a new instance.", e.getCause());
         } catch (IllegalAccessException e) {
             throw new IllegalArgumentException("Failed to create a custom annotator from the given class. It appears that we do not have access to this class - is both the class and its no-arg constructor marked public?", e);

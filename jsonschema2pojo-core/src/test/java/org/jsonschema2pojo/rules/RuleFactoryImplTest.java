@@ -1,5 +1,5 @@
 /**
- * Copyright © 2010-2014 Nokia
+ * Copyright © 2010-2020 Nokia
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,12 +20,12 @@ import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
-import org.junit.Test;
-
 import org.jsonschema2pojo.DefaultGenerationConfig;
 import org.jsonschema2pojo.GenerationConfig;
 import org.jsonschema2pojo.NoopAnnotator;
+import org.jsonschema2pojo.RuleLogger;
 import org.jsonschema2pojo.SchemaStore;
+import org.junit.Test;
 
 public class RuleFactoryImplTest {
 
@@ -39,6 +39,8 @@ public class RuleFactoryImplTest {
         assertThat(ruleFactory.getArrayRule(), notNullValue());
 
         assertThat(ruleFactory.getDefaultRule(), notNullValue());
+
+        assertThat(ruleFactory.getCommentRule(), notNullValue());
 
         assertThat(ruleFactory.getDescriptionRule(), notNullValue());
 
@@ -68,17 +70,33 @@ public class RuleFactoryImplTest {
         
         assertThat(ruleFactory.getValidRule(), notNullValue());
 
+        assertThat(ruleFactory.getDigitsRule(), notNullValue());
+
     }
 
     @Test
     public void generationConfigIsReturned() {
 
         GenerationConfig mockGenerationConfig = mock(GenerationConfig.class);
+        RuleLogger mockRuleLogger = mock(RuleLogger.class);
 
         RuleFactory ruleFactory = new RuleFactory(mockGenerationConfig, new NoopAnnotator(), new SchemaStore());
+        ruleFactory.setLogger(mockRuleLogger);
 
         assertThat(ruleFactory.getGenerationConfig(), is(sameInstance(mockGenerationConfig)));
+        assertThat(ruleFactory.getLogger(), is(sameInstance(mockRuleLogger)));
+    }
 
+    @Test
+    public void generationRuleLoggerIsReturned() {
+
+        GenerationConfig mockGenerationConfig = mock(GenerationConfig.class);
+        RuleLogger mockRuleLogger = mock(RuleLogger.class);
+
+        RuleFactory ruleFactory = new RuleFactory(new DefaultGenerationConfig(), new NoopAnnotator(), new SchemaStore());
+        ruleFactory.setLogger(mockRuleLogger);
+
+        assertThat(ruleFactory.getLogger(), is(sameInstance(mockRuleLogger)));
     }
 
     @Test
@@ -89,7 +107,5 @@ public class RuleFactoryImplTest {
         RuleFactory ruleFactory = new RuleFactory(new DefaultGenerationConfig(), new NoopAnnotator(), mockSchemaStore);
 
         assertThat(ruleFactory.getSchemaStore(), is(sameInstance(mockSchemaStore)));
-
     }
-
 }

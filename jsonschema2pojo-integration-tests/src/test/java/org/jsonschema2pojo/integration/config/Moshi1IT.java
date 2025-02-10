@@ -1,5 +1,5 @@
 /**
- * Copyright © 2016 Tobias Preuss
+ * Copyright © 2010-2020 Nokia
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,28 +16,29 @@
 
 package org.jsonschema2pojo.integration.config;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonPropertyOrder;
-import com.google.gson.Gson;
-import com.squareup.moshi.JsonAdapter;
-import com.squareup.moshi.Moshi;
-import org.apache.commons.io.IOUtils;
-import org.jsonschema2pojo.integration.util.Jsonschema2PojoRule;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import static org.hamcrest.Matchers.*;
+import static org.jsonschema2pojo.integration.util.CodeGenerationHelper.*;
+import static org.jsonschema2pojo.integration.util.FileSearchMatcher.*;
+import static org.jsonschema2pojo.integration.util.JsonAssert.*;
+import static org.junit.Assert.*;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Map;
 
-import static org.hamcrest.Matchers.*;
-import static org.jsonschema2pojo.integration.util.CodeGenerationHelper.config;
-import static org.jsonschema2pojo.integration.util.FileSearchMatcher.containsText;
-import static org.jsonschema2pojo.integration.util.JsonAssert.assertEqualsJson;
-import static org.junit.Assert.assertThat;
+import org.apache.commons.io.IOUtils;
+import org.jsonschema2pojo.integration.util.Jsonschema2PojoRule;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+import com.google.gson.Gson;
+import com.squareup.moshi.JsonAdapter;
+import com.squareup.moshi.Moshi;
 
 public class Moshi1IT {
 
@@ -53,7 +54,7 @@ public class Moshi1IT {
 
     @Test
     @SuppressWarnings({"rawtypes", "unchecked"})
-    public void annotationStyleMoshi1ProducesMoshi1Annotations() throws ClassNotFoundException, SecurityException, NoSuchMethodException, NoSuchFieldException {
+    public void annotationStyleMoshi1ProducesMoshi1Annotations() throws ClassNotFoundException, SecurityException, NoSuchMethodException {
 
         Class generatedType = schemaRule.generateAndCompile("/json/examples/torrent.json", "com.example",
                 config("annotationStyle", "moshi1",
@@ -61,12 +62,14 @@ public class Moshi1IT {
                         "sourceType", "json"))
                 .loadClass("com.example.Torrent");
 
+        assertThat(schemaRule.getGenerateDir(), not(containsText("jakarta.json.bind.annotation")));
+        assertThat(schemaRule.getGenerateDir(), not(containsText("javax.json.bind.annotation")));
         assertThat(schemaRule.getGenerateDir(), not(containsText("org.codehaus.jackson")));
         assertThat(schemaRule.getGenerateDir(), not(containsText("com.fasterxml.jackson")));
         assertThat(schemaRule.getGenerateDir(), not(containsText("com.google.gson")));
         assertThat(schemaRule.getGenerateDir(), not(containsText("@SerializedName")));
         assertThat(schemaRule.getGenerateDir(), containsText("com.squareup.moshi"));
-        assertThat(schemaRule.getGenerateDir(), containsText("@Json"));
+        assertThat(schemaRule.getGenerateDir(), containsText("@com.squareup.moshi.Json"));
 
         Method getter = generatedType.getMethod("getBuild");
 
@@ -76,7 +79,7 @@ public class Moshi1IT {
     }
 
     @Test
-    public void annotationStyleMoshi1MakesTypesThatWorkWithMoshi1() throws ClassNotFoundException, SecurityException, NoSuchMethodException, NoSuchFieldException, IOException {
+    public void annotationStyleMoshi1MakesTypesThatWorkWithMoshi1() throws ClassNotFoundException, SecurityException, IOException {
 
         ClassLoader resultsClassLoader = schemaRule.generateAndCompile("/json/examples/", "com.example",
                 config("annotationStyle", "moshi1",

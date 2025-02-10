@@ -1,5 +1,5 @@
 /**
- * Copyright © 2010-2014 Nokia
+ * Copyright © 2010-2020 Nokia
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,11 +27,16 @@ import java.net.URLClassLoader;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.apache.tools.ant.BuildException;
+import org.apache.tools.ant.Project;
 import org.apache.tools.ant.Task;
 import org.apache.tools.ant.types.Path;
 import org.apache.tools.ant.types.Reference;
@@ -39,8 +44,11 @@ import org.jsonschema2pojo.AllFileFilter;
 import org.jsonschema2pojo.AnnotationStyle;
 import org.jsonschema2pojo.Annotator;
 import org.jsonschema2pojo.GenerationConfig;
+import org.jsonschema2pojo.InclusionLevel;
 import org.jsonschema2pojo.Jsonschema2Pojo;
 import org.jsonschema2pojo.NoopAnnotator;
+import org.jsonschema2pojo.RuleLogger;
+import org.jsonschema2pojo.SourceSortOrder;
 import org.jsonschema2pojo.SourceType;
 import org.jsonschema2pojo.URLProtocol;
 import org.jsonschema2pojo.rules.RuleFactory;
@@ -52,7 +60,7 @@ import org.jsonschema2pojo.util.URLUtil;
  * style Java classes for data binding.
  * <p>
  * See <a href=
- * 'http://jsonschema2pojo.googlecode.com'>jsonschema2pojo.googlecode.com</a>.
+ * "http://jsonschema2pojo.googlecode.com">jsonschema2pojo.googlecode.com</a>.
  *
  * @see <a href="http://ant.apache.org/manual/develop.html">Writing Your Own
  *      Task</a>
@@ -60,6 +68,12 @@ import org.jsonschema2pojo.util.URLUtil;
 public class Jsonschema2PojoTask extends Task implements GenerationConfig {
 
     private boolean generateBuilders;
+
+    private boolean includeTypeInfo = false;
+
+    private boolean useInnerClassBuilders = false;
+
+    private boolean includeConstructorPropertiesAnnotation = false;
 
     private boolean includeConstructors = false;
 
@@ -87,7 +101,13 @@ public class Jsonschema2PojoTask extends Task implements GenerationConfig {
 
     private boolean includeToString = true;
 
+    private String[] toStringExcludes = new String[] {};
+
     private AnnotationStyle annotationStyle = AnnotationStyle.JACKSON;
+
+    private boolean useTitleAsClassname = false;
+
+    private InclusionLevel inclusionLevel = InclusionLevel.NON_NULL;
 
     private Class<? extends Annotator> customAnnotator = NoopAnnotator.class;
 
@@ -96,6 +116,8 @@ public class Jsonschema2PojoTask extends Task implements GenerationConfig {
     private boolean includeJsr303Annotations = false;
 
     private boolean includeJsr305Annotations = false;
+
+    private boolean useOptionalForGetters;
 
     private SourceType sourceType = SourceType.JSONSCHEMA;
 
@@ -111,8 +133,6 @@ public class Jsonschema2PojoTask extends Task implements GenerationConfig {
 
     private boolean useJodaLocalTimes = false;
 
-    private boolean useCommonsLang3 = false;
-
     private boolean parcelable = false;
 
     private boolean serializable = false;
@@ -127,23 +147,55 @@ public class Jsonschema2PojoTask extends Task implements GenerationConfig {
 
     private boolean constructorsRequiredPropertiesOnly = false;
 
+    boolean includeRequiredPropertiesConstructor = false;
+
+    boolean includeAllPropertiesConstructor = true;
+
+    boolean includeCopyConstructor = false;
+
     private boolean includeAdditionalProperties = true;
 
-    private boolean includeAccessors = true;
+    private boolean includeGetters = true;
+
+    private boolean includeSetters = true;
 
     private String targetVersion = "1.6";
 
     private boolean includeDynamicAccessors = false;
 
-    private String dateTimeType = null;
+    private boolean includeDynamicGetters = false;
 
-    private String timeType = null;
+    private boolean includeDynamicSetters = false;
 
-    private String dateType = null;
-    
+    private boolean includeDynamicBuilders = false;
+
+    private String dateTimeType;
+
+    private String timeType;
+
+    private String dateType;
+
     private boolean formatDateTimes = false;
 
+    private boolean formatDates = false;
 
+    private boolean formatTimes = false;
+
+    private String customDatePattern;
+
+    private String customTimePattern;
+
+    private String customDateTimePattern;
+
+    private String refFragmentPathDelimiters = "#/.";
+
+    private SourceSortOrder sourceSortOrder = SourceSortOrder.OS;
+
+    private Map<String, String> formatTypeMapping = new HashMap<>();
+    
+    private boolean includeGeneratedAnnotation = true;
+
+    private boolean useJakartaValidation = false;
     /**
      * Execute this task (it's expected that all relevant setters will have been
      * called by Ant to provide task configuration <em>before</em> this method
@@ -191,8 +243,10 @@ public class Jsonschema2PojoTask extends Task implements GenerationConfig {
         ClassLoader extendedClassloader = buildExtendedClassloader();
         Thread.currentThread().setContextClassLoader(extendedClassloader);
 
+        RuleLogger ruleLogger = new AntRuleLogger(this);
+
         try {
-            Jsonschema2Pojo.generate(this);
+            Jsonschema2Pojo.generate(this, ruleLogger);
         } catch (IOException e) {
             throw new BuildException("Error generating classes from JSON Schema file(s) " + source, e);
         }
@@ -207,7 +261,7 @@ public class Jsonschema2PojoTask extends Task implements GenerationConfig {
      *         values
      */
     private ClassLoader buildExtendedClassloader() {
-        final List<URL> classpathUrls = new ArrayList<URL>();
+        final List<URL> classpathUrls = new ArrayList<>();
         for (String pathElement : getClasspath().list()) {
             try {
                 classpathUrls.add(new File(pathElement).toURI().toURL());
@@ -238,13 +292,54 @@ public class Jsonschema2PojoTask extends Task implements GenerationConfig {
 
     /**
      * Sets the 'constructorsRequiredPropertiesOnly' property of this class.
+     * This is a legacy configuration option used to turn on the {@link #isIncludeRequiredPropertiesConstructor()}
+     * and off the {@link #isIncludeAllPropertiesConstructor()} configuration options.
+     * It is specifically tied to the {@link #isIncludeConstructors()} property, and will do nothing if that property is not enabled
      *
-     * @param constructorsRequiredPropertiesOnly
-     *            Whether generated constructors should have parameters for all
-     *            properties, or only required ones.
+     * @param constructorsRequiredPropertiesOnly controls whether the resulting class will have only the constructor with required or all properties
      */
     public void setConstructorsRequiredPropertiesOnly(boolean constructorsRequiredPropertiesOnly) {
         this.constructorsRequiredPropertiesOnly = constructorsRequiredPropertiesOnly;
+    }
+
+    /**
+     * Sets the 'includeRequiredPropertiesConstructor' configuration option. This property works in collaboration with the {@link
+     * #isIncludeConstructors()} configuration option and is incompatible with {@link #isConstructorsRequiredPropertiesOnly()}, and will have no effect
+     * if {@link #isIncludeConstructors()} is not set to true. If {@link #isIncludeConstructors()} is set to true then this configuration determines
+     * whether the resulting object should include a constructor with only the required properties as parameters.
+     *
+     * @param includeRequiredPropertiesConstructor controls whether the resulting class will include a constructor which takes in only
+     * required properties
+     */
+    public void setIncludeRequiredPropertiesConstructor(boolean includeRequiredPropertiesConstructor) {
+        this.includeRequiredPropertiesConstructor = includeRequiredPropertiesConstructor;
+    }
+
+    /**
+     * Sets the 'includeAllPropertiesConstructor' configuration option. This property works in collaboration with the {@link
+     * #isIncludeConstructors()} configuration option and is incompatible with {@link #isConstructorsRequiredPropertiesOnly()}, and will have no effect
+     * if {@link #isIncludeConstructors()} is not set to true. If {@link #isIncludeConstructors()} is set to true then this configuration determines
+     * whether the resulting object should include a constructor with all listed properties as parameters.
+     *
+     * @param includeAllPropertiesConstructor controls whether the resulting class will include a constructor which takes in all available
+     * properties of the class
+     */
+    public void setIncludeAllPropertiesConstructor(boolean includeAllPropertiesConstructor) {
+        this.includeAllPropertiesConstructor = includeAllPropertiesConstructor;
+    }
+
+    /**
+     * Sets the 'includeCopyConstructor' configuration option. This property works in collaboration with the {@link
+     * #isIncludeConstructors()} configuration option and is incompatible with {@link #isConstructorsRequiredPropertiesOnly()}, and will have no effect
+     * if {@link #isIncludeConstructors()} is not set to true. If {@link #isIncludeConstructors()} is set to true then this configuration determines
+     * whether the resulting object should include a constructor the class itself as a parameter, with the expectation that all properties from the
+     * originating class will assigned to the new class.
+     *
+     * @param includeCopyConstructor controls whether the resulting class will include a constructor which takes in an instance of the class
+     * to be shallow copied into the new instance
+     */
+    public void setIncludeCopyConstructor(boolean includeCopyConstructor) {
+        this.includeCopyConstructor = includeCopyConstructor;
     }
 
     /**
@@ -259,6 +354,22 @@ public class Jsonschema2PojoTask extends Task implements GenerationConfig {
      */
     public void setGenerateBuilders(boolean generateBuilders) {
         this.generateBuilders = generateBuilders;
+    }
+
+    /**
+     * Sets the 'includeTypeInfo' property of this class.
+     *
+     * @param includeTypeInfo
+     *            Whether to use include json type info information to class. Often required to support polymorphic type deserialization.
+     *            <p>
+     *            By default the type information is stored in the @class property, this can be overridden in the deserializationClassProperty of the schema.
+     *            <p>
+     *            Default: <code>false</code>.
+     *
+     * @see <a href="https://github.com/FasterXML/jackson-docs/wiki/JacksonPolymorphicDeserialization">Jackson Polymorphic Deserialization</a>
+     */
+    public void setIncludeTypeInfo(boolean includeTypeInfo) {
+        this.includeTypeInfo = includeTypeInfo;
     }
 
     /**
@@ -417,6 +528,26 @@ public class Jsonschema2PojoTask extends Task implements GenerationConfig {
     }
 
     /**
+     * Sets whether to use the title as classname.
+     *
+     * @param useTitleAsClassname
+     *            When {@code true}, derive the classname from title.
+     */
+    public void setUseTitleAsClassname(boolean useTitleAsClassname) {
+        this.useTitleAsClassname = useTitleAsClassname;
+    }
+
+    /**
+     * Sets the 'inclusionLevel' property of this class
+     *
+     * @param inclusionLevel
+     *            The level of inclusion for Jackson serializer.
+     */
+    public void setInclusionLevel(InclusionLevel inclusionLevel) {
+        this.inclusionLevel = inclusionLevel;
+    }
+
+    /**
      * Sets the 'customAnnotator' property of this class
      *
      * @param customAnnotator
@@ -474,6 +605,18 @@ public class Jsonschema2PojoTask extends Task implements GenerationConfig {
         this.includeJsr305Annotations = includeJsr305Annotations;
     }
 
+
+    /**
+     * Sets the 'useOptionalForGetters' property of this class
+     *
+     * @param useOptionalForGetters
+     *         Whether to use {@link java.util.Optional} as return type for
+     *         getters of non-required fields.
+     */
+    public void setUseOptionalForGetters(boolean useOptionalForGetters) {
+        this.useOptionalForGetters = useOptionalForGetters;
+    }
+
     /**
      * Sets the 'sourceType' property of this class
      *
@@ -484,6 +627,8 @@ public class Jsonschema2PojoTask extends Task implements GenerationConfig {
      *            <ul>
      *            <li><code>jsonschema</code></li>
      *            <li><code>json</code></li>
+     *            <li><code>yamlschema</code></li>
+     *            <li><code>yaml</code></li>
      *            </ul>
      */
     public void setSourceType(SourceType sourceType) {
@@ -514,6 +659,15 @@ public class Jsonschema2PojoTask extends Task implements GenerationConfig {
      */
     public void setOutputEncoding(String outputEncoding) {
         this.outputEncoding = outputEncoding;
+    }
+
+    /**
+     * Sets the 'includeConstructorPropertiesAnnotation' property of this class
+     *
+     * @param includeConstructorPropertiesAnnotation Determines if constructors will be annotated with JDK-provided ConstructorProperties annotation. (Not Available on Android)
+     */
+    public void setIncludeConstructorPropertiesAnnotation(boolean includeConstructorPropertiesAnnotation) {
+        this.includeConstructorPropertiesAnnotation = includeConstructorPropertiesAnnotation;
     }
 
     /**
@@ -556,12 +710,12 @@ public class Jsonschema2PojoTask extends Task implements GenerationConfig {
      * Sets the 'useCommonsLang3' property of this class
      *
      * @param useCommonsLang3
-     *            Whether to use commons-lang 3.x imports instead of
-     *            commons-lang 2.x imports when adding equals, hashCode and
-     *            toString methods.
+     *            whether to use commons-lang 3.x imports instead of commons-lang 2.x imports when adding equals, hashCode and toString methods
+     * @deprecated no longer in use, please remove it from your config
      */
+    @Deprecated
     public void setUseCommonsLang3(boolean useCommonsLang3) {
-        this.useCommonsLang3 = useCommonsLang3;
+        super.log("useCommonsLang3 is deprecated. Please remove it from your config.", Project.MSG_WARN);
     }
 
     /**
@@ -618,7 +772,7 @@ public class Jsonschema2PojoTask extends Task implements GenerationConfig {
     /**
      * Sets the 'fileExtensions' property of this class
      *
-     * @param classNameSuffix
+     * @param fileExtensions
      *            The array of strings that should be considered as file
      *            extensions and therefore not included in class names.
      */
@@ -639,14 +793,25 @@ public class Jsonschema2PojoTask extends Task implements GenerationConfig {
     }
 
     /**
-     * Sets the 'includeAccessors' property of this class
+     * Sets the 'includeGetters' property of this class
      *
-     * @param includeAccessors
-     *            Whether to include getters/setters or to omit these accessor
+     * @param includeGetters
+     *            Whether to include getters or to omit these accessor
      *            methods and create public fields instead.
      */
-    public void setIncludeAccessors(boolean includeAccessors) {
-        this.includeAccessors = includeAccessors;
+    public void setIncludeGetters(boolean includeGetters) {
+        this.includeGetters = includeGetters;
+    }
+
+    /**
+     * Sets the 'includeSetters' property of this class
+     *
+     * @param includeSetters
+     *            Whether to include setters or to omit these accessor
+     *            methods and create public fields instead.
+     */
+    public void setIncludeSetters(boolean includeSetters) {
+        this.includeSetters = includeSetters;
     }
 
     /**
@@ -670,22 +835,166 @@ public class Jsonschema2PojoTask extends Task implements GenerationConfig {
     public void setIncludeDynamicAccessors(boolean includeDynamicAccessors) {
         this.includeDynamicAccessors = includeDynamicAccessors;
     }
-    
+
+    /**
+     * Sets the 'includeDynamicGetters' property of this class
+     *
+     * @param includeDynamicGetters
+     *            Whether to include dynamic getters or to omit these methods.
+     */
+    public void setIncludeDynamicGetters(boolean includeDynamicGetters) {
+        this.includeDynamicGetters = includeDynamicGetters;
+    }
+
+    /**
+     * Sets the 'includeDynamicSetters' property of this class
+     *
+     * @param includeDynamicSetters
+     *            Whether to include dynamic setters or to omit these methods.
+     */
+    public void setIncludeDynamicSetters(boolean includeDynamicSetters) {
+        this.includeDynamicSetters = includeDynamicSetters;
+    }
+
+    /**
+     * Sets the 'includeDynamicBuilders' property of this class
+     *
+     * @param includeDynamicBuilders
+     *            Whether to include dynamic builders or to omit these methods.
+     */
+    public void setIncludeDynamicBuilders(boolean includeDynamicBuilders) {
+        this.includeDynamicBuilders = includeDynamicBuilders;
+    }
+
+
     /**
      * Sets the 'formatDateTimes' property of this class
      *
      * @param formatDateTimes
-     *            Whether the fields of type <code>date-type</code> have the <code>@JsonFormat</code> annotation 
-     *            with pattern set to the default value of <code>yyyy-MM-dd'T'HH:mm:ss.SSS</code> 
+     *            Whether the fields of type <code>date-type</code> have the <code>@JsonFormat</code> annotation
+     *            with pattern set to the default value of <code>yyyy-MM-dd'T'HH:mm:ss.SSS</code>
      *            and timezone set to default value of `UTC`
      */
     public void setFormatDateTime(boolean formatDateTimes) {
         this.formatDateTimes = formatDateTimes;
     }
 
+    /**
+     * Sets the 'formatTimes' property of this class
+     *
+     * @param formatTimes
+     *            Whether the fields of type <code>time</code> have the <code>@JsonFormat</code> annotation
+     *            with pattern set to the default value of <code>HH:mm:ss.SSS</code>.
+     */
+    public void setFormatTimes(boolean formatTimes) {
+        this.formatTimes = formatTimes;
+    }
+
+    /**
+     * Sets the 'formatDates' property of this class
+     *
+     * @param formatDates
+     *            Whether the fields of type <code>date</code> have the <code>@JsonFormat</code> annotation
+     *            with pattern set to the default value of <code>yyyy-MM-dd</code>.
+     */
+    public void setFormatDates(boolean formatDates) {
+        this.formatDates = formatDates;
+    }
+
+    /**
+     * Sets the 'customDatePattern' property of this class
+     *
+     * @param customDatePattern
+     *            A custom pattern to use when formatting date fields during
+     *            serialization. Requires support from your JSON binding
+     *            library.
+     */
+    public void setCustomDatePattern(String customDatePattern) {
+        this.customDatePattern = customDatePattern;
+    }
+
+    /**
+     * Sets the 'customTimePattern' property of this class
+     *
+     * @param customTimePattern
+     *            A custom pattern to use when formatting time fields during
+     *            serialization. Requires support from your JSON binding
+     *            library.
+     */
+    public void setCustomTimePattern(String customTimePattern) {
+        this.customTimePattern = customTimePattern;
+    }
+
+    /**
+     * Sets the 'customDateTimePattern' property of this class
+     *
+     * @param customDateTimePattern
+     *            A custom pattern to use when formatting date-time fields during
+     *            serialization. Requires support from your JSON binding
+     *            library.
+     */
+    public void setCustomDateTimePattern(String customDateTimePattern) {
+        this.customDateTimePattern = customDateTimePattern;
+    }
+
+    /**
+     * Sets the 'refFragmentPathDelimiters' property of this class
+     *
+     * @param refFragmentPathDelimiters A string containing any characters that should act as path delimiters when
+     *                                  resolving $ref fragments. By default, #, / and . are used in an attempt
+     *                                  to support JSON Pointer and JSON Path.
+     */
+    public void setRefFragmentPathDelimiters(String refFragmentPathDelimiters) {
+        this.refFragmentPathDelimiters = refFragmentPathDelimiters;
+    }
+
+    /**
+     * Sets the 'sourceSortOrder' property of this class
+     *
+     * @param sourceSortOrder Sets the sort order for the source files to be processed in.  By default the OS can
+     *                        influence the processing order.
+     */
+    public void setSourceSortOrder(SourceSortOrder sourceSortOrder) {
+        this.sourceSortOrder = sourceSortOrder;
+    }
+
+    /**
+     * Sets the 'useInnerClassBuilders' property of this class
+     *
+     * @param useInnerClassBuilders determines whether builders will be chainable setters or embedded classes when {@link #isGenerateBuilders()} used
+     */
+    public void setUseInnerClassBuilders(boolean useInnerClassBuilders) {
+        this.useInnerClassBuilders = useInnerClassBuilders;
+    }
+
+    /**
+     * Sets the 'useJakartaValidation' property of this class
+     *
+     * @param useJakartaValidation Whether to use annotations from {@code jakarta.validation} package instead of {@code javax.validation} package
+     *                             when adding <a href="http://jcp.org/en/jsr/detail?id=303">JSR-303</a> annotations to generated Java types.
+     */
+    public void setUseJakartaValidation(boolean useJakartaValidation) {
+        this.useJakartaValidation = useJakartaValidation;
+    }
+
+    public void setFormatTypeMapping(Map<String, String> formatTypeMapping) {
+        this.formatTypeMapping = formatTypeMapping;
+    }
+
+    public void setFormatTypeMapping(String[] formatTypeMapping) {
+        this.formatTypeMapping = Arrays.stream(formatTypeMapping)
+            .collect(Collectors.toMap(m -> m.split(":")[0], m -> m.split(":")[1]));
+    }
+
     @Override
     public boolean isGenerateBuilders() {
         return generateBuilders;
+    }
+
+    @Override
+    public boolean isIncludeTypeInfo()
+    {
+        return includeTypeInfo;
     }
 
     @Override
@@ -743,8 +1052,23 @@ public class Jsonschema2PojoTask extends Task implements GenerationConfig {
     }
 
     @Override
+    public String[] getToStringExcludes() {
+        return toStringExcludes;
+    }
+
+    @Override
     public AnnotationStyle getAnnotationStyle() {
         return annotationStyle;
+    }
+
+    @Override
+    public boolean isUseTitleAsClassname() {
+        return useTitleAsClassname;
+    }
+
+    @Override
+    public InclusionLevel getInclusionLevel() {
+        return inclusionLevel;
     }
 
     @Override
@@ -765,6 +1089,11 @@ public class Jsonschema2PojoTask extends Task implements GenerationConfig {
     @Override
     public boolean isIncludeJsr305Annotations() {
         return includeJsr305Annotations;
+    }
+
+    @Override
+    public boolean isUseOptionalForGetters() {
+        return useOptionalForGetters;
     }
 
     @Override
@@ -821,11 +1150,6 @@ public class Jsonschema2PojoTask extends Task implements GenerationConfig {
     }
 
     @Override
-    public boolean isUseCommonsLang3() {
-        return useCommonsLang3;
-    }
-
-    @Override
     public boolean isParcelable() {
         return parcelable;
     }
@@ -871,13 +1195,33 @@ public class Jsonschema2PojoTask extends Task implements GenerationConfig {
     }
 
     @Override
+    public boolean isIncludeRequiredPropertiesConstructor() {
+        return includeRequiredPropertiesConstructor;
+    }
+
+    @Override
+    public boolean isIncludeAllPropertiesConstructor() {
+        return includeAllPropertiesConstructor;
+    }
+
+    @Override
+    public boolean isIncludeCopyConstructor() {
+        return includeCopyConstructor;
+    }
+
+    @Override
     public boolean isIncludeAdditionalProperties() {
         return includeAdditionalProperties;
     }
 
     @Override
-    public boolean isIncludeAccessors() {
-        return includeAccessors;
+    public boolean isIncludeGetters() {
+        return includeGetters;
+    }
+
+    @Override
+    public boolean isIncludeSetters() {
+        return includeSetters;
     }
 
     @Override
@@ -888,6 +1232,21 @@ public class Jsonschema2PojoTask extends Task implements GenerationConfig {
     @Override
     public boolean isIncludeDynamicAccessors() {
         return includeDynamicAccessors;
+    }
+
+    @Override
+    public boolean isIncludeDynamicGetters() {
+        return includeDynamicGetters;
+    }
+
+    @Override
+    public boolean isIncludeDynamicSetters() {
+        return includeDynamicSetters;
+    }
+
+    @Override
+    public boolean isIncludeDynamicBuilders() {
+        return includeDynamicBuilders;
     }
 
     @Override
@@ -920,4 +1279,63 @@ public class Jsonschema2PojoTask extends Task implements GenerationConfig {
         return formatDateTimes;
     }
 
+    @Override
+    public boolean isFormatDates() {
+        return formatDates;
+    }
+
+    @Override
+    public boolean isFormatTimes() {
+        return formatTimes;
+    }
+
+    @Override
+    public String getCustomDatePattern() {
+        return customDatePattern;
+    }
+
+    @Override
+    public String getCustomTimePattern() {
+        return customTimePattern;
+    }
+
+    @Override
+    public String getCustomDateTimePattern() {
+        return customDateTimePattern;
+    }
+
+    @Override
+    public String getRefFragmentPathDelimiters() {
+        return refFragmentPathDelimiters;
+    }
+
+    @Override
+    public SourceSortOrder getSourceSortOrder() {
+        return sourceSortOrder;
+    }
+    
+    @Override
+    public Map<String, String> getFormatTypeMapping() {
+        return formatTypeMapping;
+    }
+
+    @Override
+    public boolean isUseInnerClassBuilders() {
+        return useInnerClassBuilders;
+    }
+
+    @Override
+    public boolean isIncludeConstructorPropertiesAnnotation() {
+        return includeConstructorPropertiesAnnotation;
+    }
+
+    @Override
+    public boolean isIncludeGeneratedAnnotation() {
+        return includeGeneratedAnnotation;
+    }
+
+    @Override
+    public boolean isUseJakartaValidation() {
+        return useJakartaValidation;
+    }
 }

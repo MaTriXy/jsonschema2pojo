@@ -1,5 +1,5 @@
 /**
- * Copyright © 2010-2014 Nokia
+ * Copyright © 2010-2020 Nokia
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
 
 package org.jsonschema2pojo.integration.config;
 
-import static org.jsonschema2pojo.integration.util.CodeGenerationHelper.config;
+import static org.jsonschema2pojo.integration.util.CodeGenerationHelper.*;
 
 import org.jsonschema2pojo.integration.util.Jsonschema2PojoRule;
 import org.junit.Rule;
@@ -38,6 +38,14 @@ public class PrefixSuffixIT {
 
         ClassLoader resultsClassLoader = schemaRule.generateAndCompile("/schema/properties/primitiveProperties.json", "com.example", config("classNamePrefix","Abstract"));
         resultsClassLoader.loadClass("com.example.AbstractPrimitiveProperties");
+    }
+
+    @Test(expected = ClassNotFoundException.class)
+    public void customClassPrefixExistingClass() throws ClassNotFoundException {
+
+        ClassLoader resultsClassLoader = schemaRule.generateAndCompile("/schema/properties/objectPropertiesJavaType.json",
+                "com.example", config("classNamePrefix", "SomePrefix"));
+        resultsClassLoader.loadClass("org.jsonschema2pojo.SomePrefixNoopAnnotator");
     }
     
     @Test
@@ -130,4 +138,5 @@ public class PrefixSuffixIT {
                 "com.example", config("classNamePrefix", "Prefix", "classNameSuffix","Suffix"));
         resultsClassLoader.loadClass("com.example.PrefixPrimitivePropertiesNoJavaTypeSuffix");
     }
+
 }

@@ -1,5 +1,5 @@
 /**
- * Copyright © 2010-2014 Nokia
+ * Copyright © 2010-2020 Nokia
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
 
 package org.jsonschema2pojo.integration.config;
 
-import static org.jsonschema2pojo.integration.util.CodeGenerationHelper.config;
+import static org.jsonschema2pojo.integration.util.CodeGenerationHelper.*;
 import static org.junit.Assert.*;
 
 import org.jsonschema2pojo.integration.util.Jsonschema2PojoRule;
@@ -42,7 +42,7 @@ public class IncludeToStringIT {
 
     @Test
     @SuppressWarnings({ "unchecked", "rawtypes" })
-    public void beansOmitHashCodeAndEqualsWhenConfigIsSet() throws ClassNotFoundException, SecurityException, NoSuchMethodException {
+    public void beansOmitToStringWhenConfigIsSet() throws ClassNotFoundException, SecurityException {
         ClassLoader resultsClassLoader = schemaRule.generateAndCompile("/schema/properties/primitiveProperties.json", "com.example", config("includeToString", false));
 
         Class generatedType = resultsClassLoader.loadClass("com.example.PrimitiveProperties");

@@ -1,5 +1,5 @@
 /**
- * Copyright © 2010-2014 Nokia
+ * Copyright © 2010-2020 Nokia
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,9 +16,9 @@
 
 package org.jsonschema2pojo.integration;
 
+import static org.hamcrest.MatcherAssert.*;
 import static org.hamcrest.Matchers.*;
-import static org.jsonschema2pojo.integration.util.CodeGenerationHelper.config;
-import static org.junit.Assert.*;
+import static org.jsonschema2pojo.integration.util.CodeGenerationHelper.*;
 
 import java.io.Serializable;
 import java.lang.reflect.Method;
@@ -33,7 +33,7 @@ import org.junit.Rule;
 import org.junit.Test;
 
 public class TypeIT {
-    
+
     @ClassRule public static Jsonschema2PojoRule classSchemaRule = new Jsonschema2PojoRule();
     @Rule public Jsonschema2PojoRule schemaRule = new Jsonschema2PojoRule();
 
@@ -84,7 +84,7 @@ public class TypeIT {
     }
 
     @Test
-    public void arrayTypeProducesCollection() throws NoSuchMethodException, ClassNotFoundException {
+    public void arrayTypeProducesCollection() throws NoSuchMethodException {
 
         Method getterMethod = classWithManyTypes.getMethod("getArrayProperty");
 
@@ -184,6 +184,14 @@ public class TypeIT {
         assertThat(classWithManyTypes.getMethod("getStringWithJavaType").getReturnType().getName(), is("java.lang.Boolean"));
         assertThat(classWithManyTypes.getMethod("getBooleanWithJavaType").getReturnType().getName(), is("long"));
         assertThat(classWithManyTypes.getMethod("getDateWithJavaType").getReturnType().getName(), is("int"));
+        assertThat(classWithManyTypes.getMethod("getEnumWithJavaType").getReturnType().getName(), is("java.lang.Boolean"));
+
+    }
+
+    @Test
+    public void enumCanHaveUnqualifiedJavaType() throws NoSuchMethodException {
+
+        assertThat(classWithManyTypes.getMethod("getEnumWithUnqualifiedJavaType").getReturnType().getName(), is("com.example.Bar"));
 
     }
 
@@ -274,13 +282,13 @@ public class TypeIT {
     }
 
     @Test
-    public void unionTypesChooseFirstTypePresent() throws ClassNotFoundException, SecurityException, NoSuchMethodException {
+    public void unionTypesChooseFirstTypePresent() throws ReflectiveOperationException {
 
         Class<?> classWithUnionProperties = schemaRule.generateAndCompile("/schema/type/unionTypes.json", "com.example").loadClass("com.example.UnionTypes");
 
-        Method booleanGetter = classWithUnionProperties.getMethod("getBooleanProperty");
+        Method nullTypeGetter = classWithUnionProperties.getMethod("getNullProperty");
 
-        assertThat(booleanGetter.getReturnType().getName(), is("java.lang.Boolean"));
+        assertThat(nullTypeGetter.getReturnType().getName(), is("java.lang.Object"));
 
         Method stringGetter = classWithUnionProperties.getMethod("getStringProperty");
 
@@ -289,6 +297,20 @@ public class TypeIT {
         Method integerGetter = classWithUnionProperties.getMethod("getIntegerProperty");
 
         assertThat(integerGetter.getReturnType().getName(), is("java.lang.Integer"));
+
+        Method booleanGetter = classWithUnionProperties.getMethod("getBooleanProperty");
+        assertThat(booleanGetter.getReturnType().getName(), is("java.lang.Boolean"));
+    }
+
+    @Test
+    public void mixedUnionTypesReturnObject() throws ReflectiveOperationException {
+        Class<?> classWithMixedUnionProperties = schemaRule.generateAndCompile("/schema/type/mixedUnionTypes.json", "com.example").loadClass("com.example.MixedUnionTypes");
+
+        Method mixedTypesGetter = classWithMixedUnionProperties.getMethod("getMixedTypesProperty");
+        assertThat(mixedTypesGetter.getReturnType().getName(), is("java.lang.Object"));
+
+        Method mixedTypesWithNullGetter = classWithMixedUnionProperties.getMethod("getMixedTypesWithNullProperty");
+        assertThat(mixedTypesWithNullGetter.getReturnType().getName(), is("java.lang.Object"));
     }
 
     @SuppressWarnings("rawtypes")

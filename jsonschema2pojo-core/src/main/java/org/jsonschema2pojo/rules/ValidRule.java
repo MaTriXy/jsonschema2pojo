@@ -1,5 +1,5 @@
 /**
- * Copyright © 2010-2014 Nokia
+ * Copyright © 2010-2020 Nokia
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,11 +16,14 @@
 
 package org.jsonschema2pojo.rules;
 
-import javax.validation.Valid;
+import java.lang.annotation.Annotation;
+
+import org.jsonschema2pojo.Schema;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import org.jsonschema2pojo.Schema;
 import com.sun.codemodel.JFieldVar;
+
+import jakarta.validation.Valid;
 
 public class ValidRule implements Rule<JFieldVar, JFieldVar> {
     
@@ -31,10 +34,14 @@ public class ValidRule implements Rule<JFieldVar, JFieldVar> {
     }
 
     @Override
-    public JFieldVar apply(String nodeName, JsonNode node, JFieldVar field, Schema currentSchema) {
+    public JFieldVar apply(String nodeName, JsonNode node, JsonNode parent, JFieldVar field, Schema currentSchema) {
         
         if (ruleFactory.getGenerationConfig().isIncludeJsr303Annotations()) {
-            field.annotate(Valid.class);
+            final Class<? extends Annotation> validClass
+                    = ruleFactory.getGenerationConfig().isUseJakartaValidation()
+                    ? Valid.class
+                    : javax.validation.Valid.class;
+            field.annotate(validClass);
         }
         
         return field;

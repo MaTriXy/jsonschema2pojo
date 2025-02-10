@@ -1,5 +1,5 @@
 /**
- * Copyright © 2010-2014 Nokia
+ * Copyright © 2010-2020 Nokia
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,12 +22,11 @@ import java.util.Iterator;
 
 import org.jsonschema2pojo.exception.GenerationException;
 
+import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.jsonschema.SchemaAware;
@@ -39,14 +38,22 @@ import com.fasterxml.jackson.databind.ser.std.NullSerializer;
 
 public class SchemaGenerator {
 
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
-            .enable(JsonParser.Feature.ALLOW_COMMENTS)
-            .enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS);
+    private final ObjectMapper objectMapper;
+
+    public SchemaGenerator() {
+        this(null);
+    }
+
+    public SchemaGenerator(JsonFactory jsonFactory) {
+        this.objectMapper = new ObjectMapper(jsonFactory)
+                .enable(JsonParser.Feature.ALLOW_COMMENTS)
+                .enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS);
+    }
 
     public ObjectNode schemaFromExample(URL example) {
 
         try {
-            JsonNode content = OBJECT_MAPPER.readTree(example);
+            JsonNode content = this.objectMapper.readTree(example);
             return schemaFromExample(content);
         } catch (IOException e) {
             throw new GenerationException("Could not process JSON in source file", e);
@@ -68,10 +75,10 @@ public class SchemaGenerator {
 
     private ObjectNode objectSchema(JsonNode exampleObject) {
 
-        ObjectNode schema = OBJECT_MAPPER.createObjectNode();
+        ObjectNode schema = this.objectMapper.createObjectNode();
         schema.put("type", "object");
 
-        ObjectNode properties = OBJECT_MAPPER.createObjectNode();
+        ObjectNode properties = this.objectMapper.createObjectNode();
         for (Iterator<String> iter = exampleObject.fieldNames(); iter.hasNext();) {
             String property = iter.next();
             properties.set(property, schemaFromExample(exampleObject.get(property)));
@@ -82,7 +89,7 @@ public class SchemaGenerator {
     }
 
     private ObjectNode arraySchema(JsonNode exampleArray) {
-        ObjectNode schema = OBJECT_MAPPER.createObjectNode();
+        ObjectNode schema = this.objectMapper.createObjectNode();
 
         schema.put("type", "array");
 
@@ -98,7 +105,7 @@ public class SchemaGenerator {
 
     private JsonNode mergeArrayItems(JsonNode exampleArray) {
 
-        ObjectNode mergedItems = OBJECT_MAPPER.createObjectNode();
+        ObjectNode mergedItems = this.objectMapper.createObjectNode();
 
         for (JsonNode item : exampleArray) {
             if (item.isObject()) {
@@ -143,34 +150,28 @@ public class SchemaGenerator {
 
         try {
 
-            Object valueAsJavaType = OBJECT_MAPPER.treeToValue(exampleValue, Object.class);
+            Object valueAsJavaType = this.objectMapper.treeToValue(exampleValue, Object.class);
 
-            SchemaAware valueSerializer = getValueSerializer(valueAsJavaType);
+            SerializerProvider serializerProvider = new DefaultSerializerProvider.Impl().createInstance(this.objectMapper.getSerializationConfig(), BeanSerializerFactory.instance);
 
-            return (ObjectNode) valueSerializer.getSchema(OBJECT_MAPPER.getSerializerProvider(), null);
-        } catch (JsonMappingException e) {
-            throw new GenerationException("Unable to generate a schema for this json example: " + exampleValue, e);
+            if (valueAsJavaType == null) {
+                SchemaAware valueSerializer = NullSerializer.instance;
+                return (ObjectNode) valueSerializer.getSchema(serializerProvider, null);
+            } else if (valueAsJavaType instanceof Long) {
+                // longs are 'integers' in schema terms
+                SchemaAware valueSerializer = (SchemaAware) serializerProvider.findValueSerializer(Integer.class, null);
+                ObjectNode schema = (ObjectNode) valueSerializer.getSchema(serializerProvider, null);
+                schema.put("minimum", Long.MAX_VALUE);
+                return schema;
+            } else {
+                Class<? extends Object> javaTypeForValue = valueAsJavaType.getClass();
+                SchemaAware valueSerializer = (SchemaAware) serializerProvider.findValueSerializer(javaTypeForValue, null);
+                return (ObjectNode) valueSerializer.getSchema(serializerProvider, null);
+            }
         } catch (JsonProcessingException e) {
             throw new GenerationException("Unable to generate a schema for this json example: " + exampleValue, e);
         }
 
-    }
-
-    private SchemaAware getValueSerializer(Object valueAsJavaType) throws JsonMappingException {
-
-        SerializerProvider serializerProvider = new DefaultSerializerProvider.Impl().createInstance(OBJECT_MAPPER.getSerializationConfig(), BeanSerializerFactory.instance);
-
-        if (valueAsJavaType == null) {
-            return NullSerializer.instance;
-        } else if (valueAsJavaType instanceof Long) {
-            // longs are 'integers' in schema terms
-            JsonSerializer<Object> valueSerializer = serializerProvider.findValueSerializer(Integer.class, null);
-            return (SchemaAware) valueSerializer;
-        } else {
-            Class<? extends Object> javaTypeForValue = valueAsJavaType.getClass();
-            JsonSerializer<Object> valueSerializer = serializerProvider.findValueSerializer(javaTypeForValue, null);
-            return (SchemaAware) valueSerializer;
-        }
     }
 
 }

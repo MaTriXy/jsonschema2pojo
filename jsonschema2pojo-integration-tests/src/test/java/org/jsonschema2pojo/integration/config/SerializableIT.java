@@ -1,5 +1,5 @@
 /**
- * Copyright © 2010-2015 Nokia
+ * Copyright © 2010-2020 Nokia
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package org.jsonschema2pojo.integration.config;
 
 import static org.jsonschema2pojo.integration.util.CodeGenerationHelper.*;
 import static org.junit.Assert.*;
+
 import java.io.Serializable;
 
 import org.junit.Test;
@@ -25,7 +26,7 @@ import org.junit.Test;
 public class SerializableIT {
 
     @Test
-    @SuppressWarnings({ "unchecked", "rawtypes" })
+    @SuppressWarnings({ "rawtypes" })
     public void beansDoNotIncludeSerializableByDefault() throws ClassNotFoundException, SecurityException {
 
         ClassLoader resultsClassLoader = generateAndCompile("/schema/properties/primitiveProperties.json", "com.example");
@@ -37,7 +38,7 @@ public class SerializableIT {
     }
 
     @Test
-    @SuppressWarnings({ "unchecked", "rawtypes" })
+    @SuppressWarnings({ "rawtypes" })
     public void beansIncludeSerializableWhenConfigIsSet() throws ClassNotFoundException, SecurityException {
         ClassLoader resultsClassLoader = generateAndCompile("/schema/properties/primitiveProperties.json", "com.example", config("serializable", true));
 
@@ -47,7 +48,7 @@ public class SerializableIT {
     }
 
     @Test
-    @SuppressWarnings({ "unchecked", "rawtypes" })
+    @SuppressWarnings({ "rawtypes" })
     public void beansCanIncludeConstructor() throws ClassNotFoundException, SecurityException {
         ClassLoader resultsClassLoader = generateAndCompile("/schema/properties/primitiveProperties.json", "com.example", config("serializable", true, "includeConstructors", true));
 

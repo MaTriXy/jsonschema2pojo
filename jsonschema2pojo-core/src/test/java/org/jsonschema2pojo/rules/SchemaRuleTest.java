@@ -1,5 +1,5 @@
 /**
- * Copyright © 2010-2014 Nokia
+ * Copyright © 2010-2020 Nokia
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,20 +18,20 @@ package org.jsonschema2pojo.rules;
 
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
-import static org.mockito.Matchers.*;
 import static org.mockito.Mockito.*;
 
 import java.net.URI;
 import java.net.URISyntaxException;
 
+import org.jsonschema2pojo.GenerationConfig;
+import org.jsonschema2pojo.Schema;
+import org.jsonschema2pojo.SchemaStore;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import org.jsonschema2pojo.Schema;
-import org.jsonschema2pojo.SchemaStore;
 import com.sun.codemodel.JClassAlreadyExistsException;
 import com.sun.codemodel.JCodeModel;
 import com.sun.codemodel.JDefinedClass;
@@ -42,8 +42,8 @@ public class SchemaRuleTest {
     private static final String NODE_NAME = "nodeName";
     private static final String TARGET_CLASS_NAME = SchemaRuleTest.class.getName() + ".DummyClass";
 
-    private RuleFactory mockRuleFactory = mock(RuleFactory.class);
-    private SchemaRule rule = new SchemaRule(mockRuleFactory);
+    private final RuleFactory mockRuleFactory = mock(RuleFactory.class);
+    private final SchemaRule rule = new SchemaRule(mockRuleFactory);
 
     @Test
     public void refsToOtherSchemasAreLoaded() throws URISyntaxException, JClassAlreadyExistsException {
@@ -55,16 +55,20 @@ public class SchemaRuleTest {
 
         JDefinedClass jclass = new JCodeModel()._class(TARGET_CLASS_NAME);
 
+        final GenerationConfig mockGenerationConfig = mock(GenerationConfig.class);
+        when(mockGenerationConfig.getRefFragmentPathDelimiters()).thenReturn("#/.");
+
         TypeRule mockTypeRule = mock(TypeRule.class);
         when(mockRuleFactory.getTypeRule()).thenReturn(mockTypeRule);
         when(mockRuleFactory.getSchemaStore()).thenReturn(new SchemaStore());
+        when(mockRuleFactory.getGenerationConfig()).thenReturn(mockGenerationConfig);
 
         ArgumentCaptor<JsonNode> captureJsonNode = ArgumentCaptor.forClass(JsonNode.class);
         ArgumentCaptor<Schema> captureSchema = ArgumentCaptor.forClass(Schema.class);
 
-        rule.apply(NODE_NAME, schemaWithRef, jclass, null);
+        rule.apply(NODE_NAME, schemaWithRef, null, jclass, null);
 
-        verify(mockTypeRule).apply(eq(NODE_NAME), captureJsonNode.capture(), eq(jclass.getPackage()), captureSchema.capture());
+        verify(mockTypeRule).apply(eq("address"), captureJsonNode.capture(), any(), eq(jclass.getPackage()), captureSchema.capture());
 
         assertThat(captureSchema.getValue().getId(), is(equalTo(schemaUri)));
         assertThat(captureSchema.getValue().getContent(), is(equalTo(captureJsonNode.getValue())));
@@ -73,12 +77,12 @@ public class SchemaRuleTest {
     }
 
     @Test
-    public void enumAsRootIsGeneratedCorrectly() throws URISyntaxException, JClassAlreadyExistsException {
+    public void enumAsRootIsGeneratedCorrectly() throws JClassAlreadyExistsException {
 
         ObjectNode schemaContent = new ObjectMapper().createObjectNode();
         ObjectNode enumNode = schemaContent.objectNode();
         enumNode.put("type", "string");
-        schemaContent.put("enum", enumNode);
+        schemaContent.set("enum", enumNode);
 
         JDefinedClass jclass = new JCodeModel()._class(TARGET_CLASS_NAME);
 
@@ -89,11 +93,11 @@ public class SchemaRuleTest {
         EnumRule enumRule = mock(EnumRule.class);
         when(mockRuleFactory.getEnumRule()).thenReturn(enumRule);
 
-        when(enumRule.apply(NODE_NAME, enumNode, jclass, schema)).thenReturn(jclass);
+        when(enumRule.apply(NODE_NAME, enumNode, null, jclass, schema)).thenReturn(jclass);
 
-        rule.apply(NODE_NAME, schemaContent, jclass, schema);
+        rule.apply(NODE_NAME, schemaContent, null, jclass, schema);
 
-        verify(enumRule).apply(NODE_NAME, schemaContent, jclass, schema);
+        verify(enumRule).apply(NODE_NAME, schemaContent, null, jclass, schema);
         verify(schema, atLeastOnce()).setJavaTypeIfEmpty(jclass);
 
     }
@@ -106,15 +110,19 @@ public class SchemaRuleTest {
         URI schemaUri = getClass().getResource("/schema/address.json").toURI();
 
         SchemaStore schemaStore = new SchemaStore();
-        Schema schema = schemaStore.create(schemaUri);
+        Schema schema = schemaStore.create(schemaUri, "#/.");
         schema.setJavaType(previouslyGeneratedType);
 
+        final GenerationConfig mockGenerationConfig = mock(GenerationConfig.class);
+        when(mockGenerationConfig.getRefFragmentPathDelimiters()).thenReturn("#/.");
+
         when(mockRuleFactory.getSchemaStore()).thenReturn(schemaStore);
+        when(mockRuleFactory.getGenerationConfig()).thenReturn(mockGenerationConfig);
 
         ObjectNode schemaNode = new ObjectMapper().createObjectNode();
         schemaNode.put("$ref", schemaUri.toString());
 
-        JType result = rule.apply(NODE_NAME, schemaNode, null, schema);
+        JType result = rule.apply(NODE_NAME, schemaNode, null,null, schema);
 
         assertThat(result, is(sameInstance(previouslyGeneratedType)));
 

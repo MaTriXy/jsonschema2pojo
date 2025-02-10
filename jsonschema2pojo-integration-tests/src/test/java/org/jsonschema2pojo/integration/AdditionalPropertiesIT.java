@@ -1,5 +1,5 @@
 /**
- * Copyright © 2010-2014 Nokia
+ * Copyright © 2010-2020 Nokia
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
 package org.jsonschema2pojo.integration;
 
 import static org.hamcrest.Matchers.*;
-import static org.jsonschema2pojo.integration.util.CodeGenerationHelper.config;
+import static org.jsonschema2pojo.integration.util.CodeGenerationHelper.*;
 import static org.junit.Assert.*;
 
 import java.io.IOException;
@@ -34,14 +34,13 @@ import org.junit.Rule;
 import org.junit.Test;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
 
 public class AdditionalPropertiesIT {
-    
+
     @Rule public Jsonschema2PojoRule schemaRule = new Jsonschema2PojoRule();
 
     private ObjectMapper mapper = new ObjectMapper();
@@ -71,7 +70,7 @@ public class AdditionalPropertiesIT {
     @SuppressWarnings("unchecked")
     public void jacksonCanDeserializeOurAdditionalPropertiesWithoutIncludeAccessors() throws ClassNotFoundException, IOException, SecurityException, NoSuchMethodException, IllegalArgumentException, IllegalAccessException, InvocationTargetException {
 
-        ClassLoader resultsClassLoader = schemaRule.generateAndCompile("/schema/additionalProperties/defaultAdditionalProperties.json", "com.example", config("includeAccessors", false));
+        ClassLoader resultsClassLoader = schemaRule.generateAndCompile("/schema/additionalProperties/defaultAdditionalProperties.json", "com.example", config("includeGetters", false));
 
         Class<?> classWithAdditionalProperties = resultsClassLoader.loadClass("com.example.DefaultAdditionalProperties");
 
@@ -86,9 +85,9 @@ public class AdditionalPropertiesIT {
         assertThat((Integer) ((Map<String, Object>) getter.invoke(deserialized)).get("b"), is(2));
 
     }
- 
+
     @Test
-    public void jacksonCanSerializeOurAdditionalProperties() throws ClassNotFoundException, IOException, SecurityException, NoSuchMethodException, IllegalArgumentException, IllegalAccessException, InvocationTargetException, InstantiationException {
+    public void jacksonCanSerializeOurAdditionalProperties() throws ClassNotFoundException, IOException, SecurityException, IllegalArgumentException {
 
         ClassLoader resultsClassLoader = schemaRule.generateAndCompile("/schema/additionalProperties/defaultAdditionalProperties.json", "com.example");
 
@@ -103,9 +102,9 @@ public class AdditionalPropertiesIT {
     }
 
     @Test
-    public void jacksonCanSerializeOurAdditionalPropertiesWithoutIncludeAccessors() throws ClassNotFoundException, IOException, SecurityException, NoSuchMethodException, IllegalArgumentException, IllegalAccessException, InvocationTargetException, InstantiationException {
+    public void jacksonCanSerializeOurAdditionalPropertiesWithoutIncludeAccessors() throws ClassNotFoundException, IOException, SecurityException, IllegalArgumentException {
 
-        ClassLoader resultsClassLoader = schemaRule.generateAndCompile("/schema/additionalProperties/defaultAdditionalProperties.json", "com.example", config("includeAccessors", false));
+        ClassLoader resultsClassLoader = schemaRule.generateAndCompile("/schema/additionalProperties/defaultAdditionalProperties.json", "com.example", config("includeGetters", false));
 
         Class<?> classWithAdditionalProperties = resultsClassLoader.loadClass("com.example.DefaultAdditionalProperties");
         String jsonWithAdditionalProperties = "{\"a\":1, \"b\":2};";
@@ -118,7 +117,7 @@ public class AdditionalPropertiesIT {
     }
 
     @Test(expected = UnrecognizedPropertyException.class)
-    public void additionalPropertiesAreNotDeserializableWhenDisallowed() throws ClassNotFoundException, SecurityException, NoSuchMethodException, IOException {
+    public void additionalPropertiesAreNotDeserializableWhenDisallowed() throws ClassNotFoundException, SecurityException, IOException {
 
         ClassLoader resultsClassLoader = schemaRule.generateAndCompile("/schema/additionalProperties/noAdditionalProperties.json", "com.example");
 
@@ -129,7 +128,7 @@ public class AdditionalPropertiesIT {
     }
 
     @Test(expected = UnrecognizedPropertyException.class)
-    public void additionalPropertiesAreNotDeserializableWhenDisabledGlobally() throws ClassNotFoundException, SecurityException, NoSuchMethodException, IOException {
+    public void additionalPropertiesAreNotDeserializableWhenDisabledGlobally() throws ClassNotFoundException, SecurityException, IOException {
 
         ClassLoader resultsClassLoader = schemaRule.generateAndCompile("/schema/additionalProperties/defaultAdditionalProperties.json", "com.example", config("includeAdditionalProperties", false));
 
@@ -252,10 +251,10 @@ public class AdditionalPropertiesIT {
     }
 
     @Test
-    public void additionalPropertiesWorkWithAllVisibility() throws ClassNotFoundException, SecurityException, NoSuchMethodException, JsonProcessingException, IOException {
+    public void additionalPropertiesWorkWithAllVisibility() throws ClassNotFoundException, SecurityException, IOException {
         mapper.configure(MapperFeature.AUTO_DETECT_GETTERS, false);
         mapper.configure(MapperFeature.AUTO_DETECT_SETTERS, false);
-        mapper.setVisibilityChecker(mapper.getVisibilityChecker().with(Visibility.ANY));
+        mapper.setVisibility(mapper.getVisibilityChecker().with(Visibility.ANY));
 
         ClassLoader resultsClassLoader = schemaRule.generateAndCompile("/schema/additionalProperties/defaultAdditionalProperties.json", "com.example");
 

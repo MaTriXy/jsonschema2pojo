@@ -1,5 +1,5 @@
 /**
- * Copyright © 2010-2014 Nokia
+ * Copyright © 2010-2020 Nokia
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -63,11 +63,11 @@ public class SelfRefIT {
 
         Class<?> aClass = selfRefsClass.getMethod("getEmbeddedInSelf").getReturnType();
 
-        assertThat(aClass.getName(), is("com.example.EmbeddedInSelf"));
+        assertThat(aClass.getName(), is("com.example.Embedded"));
 
         Class<?> embedded2Class = aClass.getMethod("getEmbeddedProp").getReturnType();
 
-        assertThat(embedded2Class.getName(), is("com.example.EmbeddedProp"));
+        assertThat(embedded2Class.getName(), is("com.example.Embedded2"));
 
         Class<?> otherEmbeddedClass = embedded2Class.getMethod("getEmbeddedProp2").getReturnType();
 
@@ -92,7 +92,7 @@ public class SelfRefIT {
         assertThat(mapEntryClass.getName(), is("com.example.SelfRefs"));
 
     }
-    
+
     @Test
     public void nestedSelfRefsInStringContentWithoutParentFile() throws NoSuchMethodException, ClassNotFoundException, IOException {
 
@@ -114,7 +114,18 @@ public class SelfRefIT {
         assertThat(thingClass.getMethod("getNamespace").getReturnType().getSimpleName(), equalTo("String"));
         assertThat(thingClass.getMethod("getName").getReturnType().getSimpleName(), equalTo("String"));
         assertThat(thingClass.getMethod("getVersion").getReturnType().getSimpleName(), equalTo("String"));
-        
-    }    
+
+    }
+
+    @Test
+    public void selfRefUsedInArrayItemIsReadSuccessfully() throws ReflectiveOperationException {
+        ClassLoader resultsClassLoader = schemaRule.generateAndCompile("/schema/ref/selfReferencingArrayItem.json", "com.example");
+
+        Class<?> generatedType = resultsClassLoader.loadClass("com.example.SelfReferencingArrayItem");
+        Type listOfAType = generatedType.getMethod("getSelfReferencingArrayItems").getGenericReturnType();
+        Class<?> listEntryClass = (Class<?>) ((ParameterizedType) listOfAType).getActualTypeArguments()[0];
+
+        assertThat(listEntryClass.getName(), is("com.example.SelfReferencingArrayItem"));
+    }
 
 }

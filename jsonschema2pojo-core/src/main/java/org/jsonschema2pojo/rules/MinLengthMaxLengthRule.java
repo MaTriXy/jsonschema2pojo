@@ -1,5 +1,5 @@
 /**
- * Copyright © 2010-2014 Nokia
+ * Copyright © 2010-2020 Nokia
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,12 +16,18 @@
 
 package org.jsonschema2pojo.rules;
 
-import javax.validation.constraints.Size;
+import java.lang.annotation.Annotation;
+import java.lang.reflect.Array;
+import java.util.Collection;
+import java.util.Map;
+
+import org.jsonschema2pojo.Schema;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import org.jsonschema2pojo.Schema;
 import com.sun.codemodel.JAnnotationUse;
 import com.sun.codemodel.JFieldVar;
+
+import jakarta.validation.constraints.Size;
 
 public class MinLengthMaxLengthRule implements Rule<JFieldVar, JFieldVar> {
     
@@ -32,12 +38,17 @@ public class MinLengthMaxLengthRule implements Rule<JFieldVar, JFieldVar> {
     }
     
     @Override
-    public JFieldVar apply(String nodeName, JsonNode node, JFieldVar field, Schema currentSchema) {
+    public JFieldVar apply(String nodeName, JsonNode node, JsonNode parent, JFieldVar field, Schema currentSchema) {
         
         if (ruleFactory.getGenerationConfig().isIncludeJsr303Annotations()
-                && (node.has("minLength") || node.has("maxLength"))) {
+                && (node.has("minLength") || node.has("maxLength"))
+                && isApplicableType(field)) {
 
-            JAnnotationUse annotation = field.annotate(Size.class);
+            final Class<? extends Annotation> sizeClass
+                    = ruleFactory.getGenerationConfig().isUseJakartaValidation()
+                    ? Size.class
+                    : javax.validation.constraints.Size.class;
+            JAnnotationUse annotation = field.annotate(sizeClass);
 
             if (node.has("minLength")) {
                 annotation.param("min", node.get("minLength").asInt());
@@ -50,5 +61,26 @@ public class MinLengthMaxLengthRule implements Rule<JFieldVar, JFieldVar> {
 
         return field;
     }
-    
+
+    private boolean isApplicableType(JFieldVar field) {
+        try {
+            String typeName = field.type().boxify().fullName();
+            // For collections, the full name will be something like 'java.util.List<String>' and we
+            // need just 'java.util.List'.
+            int genericsPos = typeName.indexOf('<');
+            if (genericsPos > -1) {
+                typeName = typeName.substring(0, genericsPos);
+            }
+
+            Class<?> fieldClass = Class.forName(typeName);
+            return String.class.isAssignableFrom(fieldClass)
+                    || Collection.class.isAssignableFrom(fieldClass)
+                    || Map.class.isAssignableFrom(fieldClass)
+                    || Array.class.isAssignableFrom(fieldClass)
+                    || field.type().isArray();
+        } catch (ClassNotFoundException ignore) {
+            return false;
+        }
+    }
+
 }

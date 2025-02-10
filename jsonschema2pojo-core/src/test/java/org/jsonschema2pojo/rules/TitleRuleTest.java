@@ -1,5 +1,5 @@
 /**
- * Copyright © 2010-2014 Nokia
+ * Copyright © 2010-2020 Nokia
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,7 +30,7 @@ import com.sun.codemodel.JDocComment;
 
 public class TitleRuleTest {
 
-    private static final String TARGET_CLASS_NAME = ArrayRuleTest.class.getName() + ".DummyClass";
+    private static final String TARGET_CLASS_NAME = TitleRuleTest.class.getName() + ".DummyClass";
 
     private TitleRule rule = new TitleRule();
 
@@ -42,11 +42,11 @@ public class TitleRuleTest {
         ObjectMapper mapper = new ObjectMapper();
         TextNode titleNode = mapper.createObjectNode().textNode("some title");
 
-        JDocComment result = rule.apply("fooBar", titleNode, jclass, null);
+        JDocComment result = rule.apply("fooBar", titleNode, null, jclass, null);
 
         assertThat(result, sameInstance(jclass.javadoc()));
         assertThat(result.size(), is(1));
-        assertThat((String) result.get(0), is("some title\n<p>\n"));
+        assertThat(result.get(0), is("some title\n<p>\n"));
 
     }
 }

@@ -1,5 +1,5 @@
 /**
- * Copyright © 2010-2014 Nokia
+ * Copyright © 2010-2020 Nokia
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,16 +16,15 @@
 
 package org.jsonschema2pojo.maven;
 
-import org.jsonschema2pojo.maven.MatchPatternsFileFilter;
-import org.junit.Before;
-import org.junit.Test;
+import static java.util.Arrays.*;
+import static org.hamcrest.CoreMatchers.*;
+import static org.hamcrest.MatcherAssert.*;
 
 import java.io.File;
 import java.io.IOException;
 
-import static java.util.Arrays.asList;
-import static org.hamcrest.CoreMatchers.*;
-import static org.hamcrest.MatcherAssert.assertThat;
+import org.junit.Before;
+import org.junit.Test;
 
 public class MatchPatternsFileFilterTest {
 
@@ -89,7 +88,6 @@ public class MatchPatternsFileFilterTest {
                         equalTo(file("example.json"))));
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     public void shouldNoIncludedUnmatchedFiles() throws IOException {
         fileFilter = new MatchPatternsFileFilter.Builder()
@@ -102,7 +100,6 @@ public class MatchPatternsFileFilterTest {
         assertThat("the markdown file was not found.", asList(files), not(hasItem(file("README.md"))));
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     public void shouldNoIncludedNestedUnmatchedFiles() throws IOException {
         fileFilter = new MatchPatternsFileFilter.Builder()
@@ -115,7 +112,6 @@ public class MatchPatternsFileFilterTest {
         assertThat("the markdown file was not found.", asList(files), not(hasItem(file("README.md"))));
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     public void shouldExcludeNested() throws IOException {
         fileFilter = new MatchPatternsFileFilter.Builder()
@@ -128,7 +124,6 @@ public class MatchPatternsFileFilterTest {
         assertThat("the markdown file was not found.", asList(files), not(hasItem(file("README.md"))));
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     public void shouldExcludeDirectories() throws IOException {
         fileFilter = new MatchPatternsFileFilter.Builder()
@@ -164,7 +159,7 @@ public class MatchPatternsFileFilterTest {
 
         File[] files = basedir.listFiles(fileFilter);
 
-        assertThat("the files in .svn directory were execluded.", asList(files), not(hasItems(file(".svn"))));
+        assertThat("the files in .svn directory were excluded.", asList(files), not(hasItems(file(".svn"))));
     }
 
     @Test
@@ -177,7 +172,7 @@ public class MatchPatternsFileFilterTest {
 
         File[] files = new File(basedir, ".svn").listFiles(fileFilter);
 
-        assertThat("the files in .svn directory were execluded.", asList(files), not(hasItems(file("svn-file.json"))));
+        assertThat("the files in .svn directory were excluded.", asList(files), not(hasItems(file("svn-file.json"))));
     }
 
     @Test
@@ -190,7 +185,7 @@ public class MatchPatternsFileFilterTest {
 
         File[] files = new File(basedir, ".svn/sub").listFiles(fileFilter);
 
-        assertThat("the files in .svn directory were execluded.", asList(files), not(hasItems(file("sub-svn-file.json"))));
+        assertThat("the files in .svn directory were excluded.", asList(files), not(hasItems(file("sub-svn-file.json"))));
     }
     
     private File file(String relativePath) {

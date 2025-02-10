@@ -1,5 +1,5 @@
 /**
- * Copyright © 2010-2013 Nokia
+ * Copyright © 2010-2020 Nokia
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,8 +16,12 @@
 
 package org.jsonschema2pojo.integration.config;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.sun.codemodel.JType;
+import static org.hamcrest.Matchers.*;
+import static org.jsonschema2pojo.integration.util.CodeGenerationHelper.*;
+import static org.junit.Assert.*;
+
+import java.lang.reflect.Method;
+
 import org.joda.time.LocalDate;
 import org.jsonschema2pojo.Schema;
 import org.jsonschema2pojo.integration.util.Jsonschema2PojoRule;
@@ -26,11 +30,8 @@ import org.jsonschema2pojo.rules.Rule;
 import org.jsonschema2pojo.rules.RuleFactory;
 import org.junit.Test;
 
-import java.lang.reflect.Method;
-
-import static org.hamcrest.Matchers.is;
-import static org.jsonschema2pojo.integration.util.CodeGenerationHelper.config;
-import static org.junit.Assert.assertThat;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.sun.codemodel.JType;
 
 public class CustomRuleFactoryIT {
 
@@ -56,12 +57,12 @@ public class CustomRuleFactoryIT {
         public Rule<JType, JType> getFormatRule() {
             return new FormatRule(this) {
                 @Override
-                public JType apply(String nodeName, JsonNode node, JType baseType, Schema schema) {
+                public JType apply(String nodeName, JsonNode node, JsonNode parent, JType baseType, Schema schema) {
                     if (node.asText().equals("date")) {
                         return baseType.owner().ref(LocalDate.class);
                     }
 
-                    return super.apply(nodeName, node, baseType, schema);
+                    return super.apply(nodeName, node, parent, baseType, schema);
                 }
             };
         }

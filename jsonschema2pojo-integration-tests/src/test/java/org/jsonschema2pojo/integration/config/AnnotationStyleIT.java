@@ -1,5 +1,5 @@
 /**
- * Copyright © 2010-2014 Nokia
+ * Copyright © 2010-2020 Nokia
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -94,24 +94,6 @@ public class AnnotationStyleIT {
 
         Field field = generatedType.getDeclaredField("description");
         assertThat(field.getAnnotation(JsonPropertyDescription.class).value(), is("A description for this property"));
-    }
-
-    @Test
-    @SuppressWarnings({ "rawtypes", "unchecked" })
-    public void annotationStyleJackson1ProducesJackson1Annotations() throws ClassNotFoundException, SecurityException, NoSuchMethodException {
-
-        Class generatedType = schemaRule.generateAndCompile("/schema/properties/primitiveProperties.json", "com.example",
-                config("annotationStyle", "jackson1"))
-                .loadClass("com.example.PrimitiveProperties");
-
-        assertThat(schemaRule.getGenerateDir(), not(containsText("com.fasterxml.jackson")));
-        assertThat(schemaRule.getGenerateDir(), containsText("org.codehaus.jackson"));
-
-        Method getter = generatedType.getMethod("getA");
-
-        assertThat(generatedType.getAnnotation(org.codehaus.jackson.annotate.JsonPropertyOrder.class), is(notNullValue()));
-        assertThat(generatedType.getAnnotation(org.codehaus.jackson.map.annotate.JsonSerialize.class), is(notNullValue()));
-        assertThat(getter.getAnnotation(org.codehaus.jackson.annotate.JsonProperty.class), is(notNullValue()));
     }
 
     @Test

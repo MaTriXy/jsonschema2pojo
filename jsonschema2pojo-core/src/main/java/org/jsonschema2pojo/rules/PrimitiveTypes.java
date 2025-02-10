@@ -1,5 +1,5 @@
 /**
- * Copyright © 2010-2014 Nokia
+ * Copyright © 2010-2020 Nokia
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 package org.jsonschema2pojo.rules;
 
 import org.jsonschema2pojo.exception.GenerationException;
+
 import com.sun.codemodel.JCodeModel;
 import com.sun.codemodel.JPrimitiveType;
 import com.sun.codemodel.JType;

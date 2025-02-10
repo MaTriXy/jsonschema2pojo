@@ -33,10 +33,6 @@ import java.util.regex.Pattern;
  */
 public class Inflector {
 
-    // Pfft, can't think of a better name, but this is needed to avoid the price of initializing the pattern on each call.
-    private static final Pattern UNDERSCORE_PATTERN_1 = Pattern.compile("([A-Z]+)([A-Z][a-z])");
-    private static final Pattern UNDERSCORE_PATTERN_2 = Pattern.compile("([a-z\\d])([A-Z])");
-
     private final List<RuleAndReplacement> plurals;
     private final List<RuleAndReplacement> singulars;
     private final List<String> uncountables;
@@ -70,11 +66,14 @@ public class Inflector {
             .plural("(matr|vert|ind)ix|ex$", "$1ices")
             .plural("([m|l])ouse$", "$1ice")
             .plural("(ox)$", "$1en")
-            .plural("(quiz)$", "$1zes");
+            .plural("man$", "men")
+            .plural("(quiz)$", "$1zes")
+            .plural("specimen", "specimens");
 
         builder.singular("s$", "")
-            .singular("(n)ews$", "$1ews")
-            .singular("([ti])a$", "$1um")
+             .singular("(n)ews$", "$1ews")
+            .singular("ia$", "ium")
+            .singular("ata$", "atum")
             .singular("((a)naly|(b)a|(d)iagno|(p)arenthe|(p)rogno|(s)ynop|(t)he)ses$", "$1$2sis")
             .singular("(^analy)ses$", "$1sis")
             .singular("([^f])ves$", "$1fe")
@@ -90,18 +89,19 @@ public class Inflector {
             .singular("(o)es$", "$1")
             .singular("(shoe)s$", "$1")
             .singular("(cris|ax|test)es$", "$1is")
+            .singular("(tax)es$", "$1")
             .singular("([octop|vir])i$", "$1us")
             .singular("(alias|status)es$", "$1")
             .singular("^(ox)en", "$1")
             .singular("(vert|ind)ices$", "$1ex")
             .singular("(matr)ices$", "$1ix")
             .singular("(quiz)zes$", "$1")
-            .singular("(ess)$", "$1");
-
-        builder.singular("men$", "man")
-            .plural("man$", "men")
+            .singular("(ess)$", "$1")
+            .singular("men$", "man")
+            .singular("(.+)list$", "$1")
             .singular("specimen", "specimen")
-            .plural("specimen", "specimens");
+            .singular("status$", "status")
+            .singular("(slave)s$", "$1");
 
         builder.irregular("curve", "curves")
             .irregular("leaf", "leaves")
@@ -118,16 +118,6 @@ public class Inflector {
 
     public static Inflector getInstance() {
         return instance;
-    }
-
-    private String underscore(String camelCasedWord) {
-
-        // Regexes in Java are fucking stupid...
-        String underscoredWord = UNDERSCORE_PATTERN_1.matcher(camelCasedWord).replaceAll("$1_$2");
-        underscoredWord = UNDERSCORE_PATTERN_2.matcher(underscoredWord).replaceAll("$1_$2");
-        underscoredWord = underscoredWord.replace('-', '_').toLowerCase();
-
-        return underscoredWord;
     }
 
     public String pluralize(String word) {
@@ -158,16 +148,6 @@ public class Inflector {
         return word;
     }
 
-    private String tableize(String className) {
-        return pluralize(underscore(className));
-    }
-
-    private String tableize(Class<?> klass) {
-        // Strip away package name - we only want the 'base' class name.
-        String className = klass.getName().replace(klass.getPackage().getName() + ".", "");
-        return tableize(className);
-    }
-
     public static Builder builder()
     {
         return new Builder();
@@ -175,22 +155,16 @@ public class Inflector {
 
     // Ugh, no open structs in Java (not-natively at least).
     private static class RuleAndReplacement {
-        private final String rule;
         private final String replacement;
         private final Pattern pattern;
 
         public RuleAndReplacement(String rule, String replacement) {
-            this.rule = rule;
             this.replacement = replacement;
             this.pattern = Pattern.compile(rule, Pattern.CASE_INSENSITIVE);
         }
 
         public String getReplacement() {
             return replacement;
-        }
-
-        public String getRule() {
-            return rule;
         }
 
         public Pattern getPattern() {
@@ -200,9 +174,9 @@ public class Inflector {
 
     public static class Builder
     {
-        private List<RuleAndReplacement> plurals = new ArrayList<RuleAndReplacement>();
-        private List<RuleAndReplacement> singulars = new ArrayList<RuleAndReplacement>();
-        private List<String> uncountables = new ArrayList<String>();
+        private List<RuleAndReplacement> plurals = new ArrayList<>();
+        private List<RuleAndReplacement> singulars = new ArrayList<>();
+        private List<String> uncountables = new ArrayList<>();
 
         public Builder plural(String rule, String replacement) {
             plurals.add(0, new RuleAndReplacement(rule, replacement));

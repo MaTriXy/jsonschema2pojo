@@ -1,5 +1,5 @@
 /**
- * Copyright © 2010-2014 Nokia
+ * Copyright © 2010-2020 Nokia
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,7 +33,6 @@ public class AnnotatorFactoryTest {
     @Test
     public void canCreateCorrectAnnotatorFromAnnotationStyle() {
 
-        assertThat(factory.getAnnotator(JACKSON1), is(instanceOf(Jackson1Annotator.class)));
         assertThat(factory.getAnnotator(JACKSON), is(instanceOf(Jackson2Annotator.class)));
         assertThat(factory.getAnnotator(JACKSON2), is(instanceOf(Jackson2Annotator.class)));
         assertThat(factory.getAnnotator(GSON), is(instanceOf(GsonAnnotator.class)));
@@ -45,7 +44,7 @@ public class AnnotatorFactoryTest {
     @Test
     public void canCreateCorrectAnnotatorFromClass() {
 
-        assertThat(factory.getAnnotator(Jackson1Annotator.class), is(instanceOf(Jackson1Annotator.class)));
+        assertThat(factory.getAnnotator(Jackson2Annotator.class), is(instanceOf(Jackson2Annotator.class)));
 
     }
 

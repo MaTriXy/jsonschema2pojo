@@ -1,5 +1,5 @@
 /**
- * Copyright © 2010-2014 Nokia
+ * Copyright © 2010-2020 Nokia
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,20 +32,16 @@ public enum AnnotationStyle {
     JACKSON,
 
     /**
-     * Jackson 1.x
-     * 
-     * @see <a
-     *      href="http://jackson.codehaus.org/">http://jackson.codehaus.org/</a>
-     */
-    JACKSON1,
-
-    /**
      * Jackson 2.x
      * 
      * @see <a
      *      href="https://github.com/FasterXML/jackson-annotations">https://github.com/FasterXML/jackson-annotations</a>
      */
     JACKSON2,
+
+    JSONB1,
+
+    JSONB2,
 
     /**
      * Gson 2.x
